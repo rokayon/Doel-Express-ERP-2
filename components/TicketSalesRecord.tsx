@@ -240,7 +240,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                     dataKey="label" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800, textTransform: 'uppercase'}} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} 
                     dy={10}
                   />
                   <YAxis 
@@ -253,7 +253,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                     contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', padding: '16px' }}
                     labelStyle={{ color: '#94a3b8', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.1em' }}
                     itemStyle={{ color: '#fff', fontWeight: 900, fontSize: '16px' }}
-                    formatter={(value: number) => [`৳${value.toLocaleString()}`, 'NET REVENUE']}
+                    formatter={(value: any) => [`৳${(value || 0).toLocaleString()}`, 'NET REVENUE']}
                   />
                   <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={5} fillOpacity={1} fill="url(#colorSalesPremium)" animationDuration={1500} />
                </AreaChart>
