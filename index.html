@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doel Express ERP - Fleet Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --scrollbar-width: 8px;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Responsive Scrollbar for Desktop */
+        @media (min-width: 1024px) {
+            ::-webkit-scrollbar {
+                width: var(--scrollbar-width);
+                height: var(--scrollbar-width);
+            }
+
+            ::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.05);
+            }
+
+            .dark ::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.02);
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #94a3b8;
+                border-radius: 10px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+            }
+
+            .dark ::-webkit-scrollbar-thumb {
+                background: #334155;
+            }
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .mobile-scroll-hint::after {
+                content: '→ Swipe to view more';
+                display: block;
+                font-size: 10px;
+                font-weight: 800;
+                text-transform: uppercase;
+                color: #94a3b8;
+                margin-top: 8px;
+                text-align: center;
+            }
+        }
+
+        /* Animation primitives */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Print styles */
+        @media print {
+            aside, header, button, .no-print { display: none !important; }
+            main { margin-left: 0 !important; padding: 0 !important; }
+            .print-only { display: block !important; }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4"
+  }
+}
+</script>
+</head>
+<body class="bg-slate-50 text-slate-900 transition-colors duration-300">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

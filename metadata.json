@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Doel Express ERP 2",
+  "description": "Premium Integrated ERP for Doel Express Ltd. featuring mobile-responsive fleet management, ticket auditing, and HR/Payroll modules.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
