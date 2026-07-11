@@ -22,21 +22,40 @@ const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticke
     return () => clearInterval(timer);
   }, []);
 
-  const totals = transactions.reduce((acc, tx) => {
-    if (tx.type === 'Income') acc.income += tx.amount;
-    else acc.expense += tx.amount;
-    return acc;
-  }, { income: 0, expense: 0 });
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  const chartData = [
-    { name: lang === 'en' ? 'Mon' : 'সোম', revenue: 40000 },
-    { name: lang === 'en' ? 'Tue' : 'মঙ্গল', revenue: 30000 },
-    { name: lang === 'en' ? 'Wed' : 'বুধ', revenue: 20000 },
-    { name: lang === 'en' ? 'Thu' : 'বৃহ', revenue: 27800 },
-    { name: lang === 'en' ? 'Fri' : 'শুক্র', revenue: 18900 },
-    { name: lang === 'en' ? 'Sat' : 'শনি', revenue: 53900 },
-    { name: lang === 'en' ? 'Sun' : 'রবি', revenue: 64900 },
-  ];
+  const totals = transactions.reduce((acc, tx) => {
+    const amt = Number(tx.amount) || 0;
+    if (tx.type === 'Income') {
+      acc.income += amt;
+      if (tx.date === todayStr) acc.todayIncome += amt;
+    } else {
+      acc.expense += amt;
+    }
+    return acc;
+  }, { income: 0, expense: 0, todayIncome: 0 });
+
+  const chartData = useMemo(() => {
+    const days    = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const daysBn  = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
+    const today   = new Date();
+    const last7   = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      return d;
+    });
+    const map: Record<string, number> = {};
+    last7.forEach(d => { map[d.toISOString().split('T')[0]] = 0; });
+    transactions.forEach(tx => {
+      if (tx.type === 'Income' && map[tx.date] !== undefined) {
+        map[tx.date] += Number(tx.amount);
+      }
+    });
+    return last7.map(d => ({
+      name: lang === 'en' ? days[d.getDay()] : daysBn[d.getDay()],
+      revenue: map[d.toISOString().split('T')[0]] ?? 0
+    }));
+  }, [transactions, lang]);
 
   const counterPerformanceData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -79,7 +98,7 @@ const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticke
 
       {/* High-Impact Stat Grid */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Today's Revenue" value={`৳${(totals.income / 30).toFixed(0).toLocaleString()}`} trend="+5.2%" color="bg-emerald-500" icon={<i className="fa-solid fa-calendar-day"></i>} />
+        <StatCard title="Today's Revenue" value={`৳${totals.todayIncome.toLocaleString()}`} trend="+5.2%" color="bg-emerald-500" icon={<i className="fa-solid fa-calendar-day"></i>} />
         <StatCard title="Monthly Revenue" value={`৳${totals.income.toLocaleString()}`} trend="+12.4%" color="bg-blue-500" icon={<i className="fa-solid fa-wallet"></i>} />
         <StatCard title="Total Staff" value={staff.length} trend="+1 New" color="bg-amber-500" icon={<i className="fa-solid fa-users"></i>} />
         <StatCard title="Expiring Contracts" value={staff.filter(s => {

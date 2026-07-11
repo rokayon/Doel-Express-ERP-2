@@ -12,17 +12,19 @@ interface CounterManagementProps {
   onUpdateCounter: (counterId: string, updates: Partial<Counter>) => void;
   onAddSalesRecord: (record: TicketSalesRecord) => void;
   lang: Language;
+  canWrite?: boolean;
 }
 
-const CounterManagement: React.FC<CounterManagementProps> = ({ 
-  counters, 
-  users, 
+const CounterManagement: React.FC<CounterManagementProps> = ({
+  counters,
+  users,
   trips,
-  currentUser, 
-  onAddCounter, 
-  onUpdateCounter, 
+  currentUser,
+  onAddCounter,
+  onUpdateCounter,
   onAddSalesRecord,
-  lang 
+  lang,
+  canWrite
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingCounter, setEditingCounter] = useState<Counter | null>(null);
@@ -30,7 +32,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
   const [activeCounterForSales, setActiveCounterForSales] = useState<Counter | null>(null);
   const t = translations[lang];
 
-  const isAdmin = currentUser?.role === AppRole.SUPER_ADMIN || currentUser?.role === AppRole.ADMIN;
+  const isAdmin = canWrite ?? (currentUser?.role === AppRole.SUPER_ADMIN || currentUser?.role === AppRole.ADMIN);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -42,8 +44,8 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
     tripId: '',
     ticketsSold: '',
     ticketPrice: '850',
-    discount: '0',
-    salesCommission: '0'
+    discount: '',
+    salesCommission: ''
   });
 
   const handleAddCounterSubmit = (e: React.FormEvent) => {
@@ -135,7 +137,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
     onAddSalesRecord(newRecord);
     setShowSalesModal(false);
     setActiveCounterForSales(null);
-    setSalesFormData({ tripId: '', ticketsSold: '', ticketPrice: '850', discount: '0', salesCommission: '0' });
+    setSalesFormData({ tripId: '', ticketsSold: '', ticketPrice: '850', discount: '', salesCommission: '' });
   };
 
   const counterOperators = users.filter(u => u.role === AppRole.COUNTER || u.role === AppRole.MANAGER);
@@ -216,9 +218,21 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                 <div className="space-y-4 pt-6 border-t border-slate-50 dark:border-slate-800">
                    <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.assignedOperator}</span>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        {operator ? operator.username : t.notAssigned}
-                      </span>
+                      {operator ? (
+                        <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <i className="fa-solid fa-circle-check text-emerald-500 text-[10px]"></i>
+                          {operator.username}
+                        </span>
+                      ) : isAdmin ? (
+                        <button
+                          onClick={() => handleEditCounter(counter)}
+                          className="flex items-center gap-1 text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest border border-blue-200 hover:border-blue-400 px-2 py-1 rounded-lg transition-all"
+                        >
+                          <i className="fa-solid fa-plus text-[8px]"></i> Assign
+                        </button>
+                      ) : (
+                        <span className="text-xs font-bold text-slate-400">{t.notAssigned}</span>
+                      )}
                    </div>
                    {counter.lastSync && (
                      <div className="flex items-center justify-between">
@@ -308,7 +322,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                   value={formData.name} 
                   onChange={e => setFormData({...formData, name: e.target.value})} 
                   placeholder="e.g. Dhaka Main Terminal"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold" 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 font-bold" 
                 />
               </div>
               <div>
@@ -318,7 +332,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                   value={formData.location} 
                   onChange={e => setFormData({...formData, location: e.target.value})} 
                   placeholder="Full Address"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold" 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 font-bold" 
                 />
               </div>
               <div>
@@ -326,7 +340,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                 <select 
                   value={formData.assignedOperatorId} 
                   onChange={e => setFormData({...formData, assignedOperatorId: e.target.value})} 
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 font-bold"
                 >
                   <option value="">Unassigned</option>
                   {counterOperators.map(u => (
@@ -357,7 +371,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                   required 
                   value={salesFormData.tripId} 
                   onChange={e => setSalesFormData({...salesFormData, tripId: e.target.value})} 
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 font-bold"
                 >
                   <option value="">Choose trip...</option>
                   {trips.map(trip => (
@@ -368,17 +382,17 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{t.ticketsSold}</label>
-                  <input required type="number" value={salesFormData.ticketsSold} onChange={e => setSalesFormData({...salesFormData, ticketsSold: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border p-4 rounded-xl font-black text-lg text-blue-600" />
+                  <input required type="number" value={salesFormData.ticketsSold} onChange={e => setSalesFormData({...salesFormData, ticketsSold: e.target.value})} placeholder="0" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl font-black text-lg text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{t.ticketPrice}</label>
-                  <input required type="number" value={salesFormData.ticketPrice} onChange={e => setSalesFormData({...salesFormData, ticketPrice: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border p-4 rounded-xl font-black text-lg" />
+                  <input required type="number" value={salesFormData.ticketPrice} onChange={e => setSalesFormData({...salesFormData, ticketPrice: e.target.value})} placeholder="850" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl font-black text-lg dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{t.discounts}</label>
-                  <input type="number" value={salesFormData.discount} onChange={e => setSalesFormData({...salesFormData, discount: e.target.value})} className="w-full border p-4 rounded-xl text-rose-500 font-bold" placeholder="0" />
+                  <input type="number" value={salesFormData.discount} onChange={e => setSalesFormData({...salesFormData, discount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-xl text-rose-500 font-bold focus:ring-2 focus:ring-rose-400 outline-none transition-all hover:border-rose-300 dark:hover:border-rose-600" placeholder="0" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{t.salesCommission}</label>

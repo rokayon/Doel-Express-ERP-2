@@ -14,23 +14,13 @@ import Settings from './components/Settings';
 import TicketSalesRecordComponent from './components/TicketSalesRecord';
 import CoachRegister from './components/CoachRegister';
 import CounterManagement from './components/CounterManagement';
-import { MOCK_TRIPS, MOCK_FINANCE, MOCK_INVENTORY, MOCK_STAFF, MOCK_TICKET_SALES, MOCK_COUNTERS, MOCK_COACHES } from './constants';
-import { Trip, Transaction, InventoryItem, Staff, User, AppRole, TicketSalesRecord, Counter, Coach } from './types';
+import Vouchers from './components/Vouchers';
+import Bkash from './components/Bkash';
+import BusBd from './components/BusBd';
+import { PERMISSIONS } from './constants';
+import { Trip, Transaction, InventoryItem, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
 import { Language, translations } from './translations';
 
-const PERMISSIONS: Record<string, AppRole[]> = {
-  dashboard: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ADMIN, AppRole.ACCOUNTS, AppRole.HR, AppRole.IT, AppRole.SALES, AppRole.PURCHASE, AppRole.MARKETING, AppRole.MANAGER, AppRole.COUNTER, AppRole.DRIVER, AppRole.SUPERVISOR],
-  fleetManagement: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.IT, AppRole.SUPERVISOR],
-  ticketSalesRecord: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MANAGER, AppRole.COUNTER],
-  counters: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.COUNTER],
-  inventory: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.PURCHASE, AppRole.ADMIN, AppRole.SUPERVISOR],
-  finance: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS],
-  hr: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.HR, AppRole.MANAGER],
-  maintenance: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.IT, AppRole.ADMIN, AppRole.SUPERVISOR],
-  reports: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MARKETING, AppRole.MANAGER, AppRole.SUPERVISOR],
-  settings: [AppRole.SUPER_ADMIN, AppRole.IT, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ADMIN, AppRole.ACCOUNTS, AppRole.HR, AppRole.SALES, AppRole.PURCHASE, AppRole.MARKETING, AppRole.MANAGER, AppRole.COUNTER, AppRole.DRIVER, AppRole.SUPERVISOR],
-  userManagement: [AppRole.SUPER_ADMIN, AppRole.IT]
-};
 
 const DEFAULT_LOGO = "https://files.oaiusercontent.com/file-jI6tY5R4u3E2W1Q0P9O8N7M6?se=2025-02-21T12%3A02%3A34Z&sp=r&sv=2024-08-04&sr=b&rscc=max-age%3D604800%2C%20immutable%2C%20private&rscd=attachment%3B%20filename%3D7f7e9b2a-1e3d-4c5b-8a9c-0d1e2f3g4h5i.webp&sig=m2XF8%2B7j/QW3o0RNo8/8GzQJ2/G/Xf/P0VqO8x8r7Y%3D";
 
@@ -43,11 +33,16 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!savedUser);
   const [currentUser, setCurrentUser] = useState<User | null>(savedUser ? JSON.parse(savedUser) : null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const VALID_TABS = ['dashboard','fleetManagement','ticketSalesRecord','counters','inventory','finance','hr','maintenance','reports','settings','userManagement','vouchers'];
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('doel_tab') || 'dashboard';
+    return VALID_TABS.includes(saved) ? saved : 'dashboard';
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(savedTheme || false);
   const [language, setLanguage] = useState<Language>(savedLang || 'en');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   // Chaining State
@@ -59,50 +54,136 @@ const App: React.FC = () => {
 
   const t = translations[language];
 
-  const [coaches, setCoaches] = useState<Coach[]>(MOCK_COACHES);
-  const [trips, setTrips] = useState<Trip[]>(MOCK_TRIPS);
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_FINANCE);
-  const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
-  const [staff, setStaff] = useState<Staff[]>(MOCK_STAFF);
-  const [ticketSales, setTicketSales] = useState<TicketSalesRecord[]>(MOCK_TICKET_SALES);
-  const [counters, setCounters] = useState<Counter[]>(MOCK_COUNTERS);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [bkashRecords, setBkashRecords] = useState<BkashRecord[]>([]);
+  const [busBdRecords, setBusBdRecords] = useState<BusBdRecord[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [ticketSales, setTicketSales] = useState<TicketSalesRecord[]>([]);
+  const [counters, setCounters] = useState<Counter[]>([]);
   
-  const [users, setUsers] = useState<User[]>([
-    { id: 'sa-001', username: 'Super admin', email: 'sa@doelexpress.com', password: '12345678', role: AppRole.SUPER_ADMIN, isApproved: true, createdAt: '2024-01-01' },
-    { id: 'sv-001', username: 'Supervisor', email: 'supervisor@doelexpress.com', password: 'sv_doel_2025', role: AppRole.SUPERVISOR, isApproved: true, createdAt: '2024-05-01' },
-    { id: 'it-001', username: 'IT User', email: 'it@doelexpress.com', password: 'it_doel_2025', role: AppRole.IT, isApproved: true, createdAt: '2024-01-01' },
-    { id: 'dv-001', username: 'Driver User', email: 'driver@doelexpress.com', password: 'drv_doel_2025', role: AppRole.DRIVER, isApproved: true, createdAt: '2024-01-01' },
-    { id: 'ad-001', username: 'Admin User', email: 'admin@doelexpress.com', password: 'admin_doel_2025', role: AppRole.ADMIN, isApproved: true, createdAt: '2024-01-01' },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
 
-  // Fetch data from API
+  // Fire-and-forget API sync helper (for non-critical background writes)
+  const apiSync = useCallback((method: string, url: string, body?: any) => {
+    const role = currentUser?.role || '';
+    const uid = currentUser?.id || '';
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'x-user-role': role, 'x-user-id': uid },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }).catch(() => {});
+  }, [currentUser]);
+
+  // Awaited mutation helper — returns true on success
+  const apiMutate = useCallback(async (method: string, url: string, body?: any): Promise<boolean> => {
+    const role = currentUser?.role || '';
+    const uid = currentUser?.id || '';
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-user-role': role, 'x-user-id': uid },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      return res.ok;
+    } catch (_) { return false; }
+  }, [currentUser]);
+
+  // Fetch ALL data from API on login / refresh
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const headers = { 'x-user-role': currentUser?.role || '' };
-        const staffRes = await fetch('/api/staff', { headers });
-        if (staffRes.ok) {
-          const staffData = await staffRes.json();
-          setStaff(staffData);
-        }
-        
-        const financeRes = await fetch('/api/finance/report?period=monthly', { headers });
-        if (financeRes.ok) {
-          const financeData = await financeRes.json();
-          setTransactions(financeData.transactions);
+        const role = currentUser?.role || '';
+        const h = { 'x-user-role': role, 'x-user-id': currentUser?.id || '' };
+        // Safe loader: returns null on error or non-2xx (no throws)
+        const load = async (url: string) => {
+          try {
+            const r = await fetch(url, { headers: h });
+            if (!r.ok) return null;
+            return r.json();
+          } catch (_) { return null; }
+        };
+
+        // Re-sync current user's permissions from DB first (sequential)
+        if (currentUser?.id) {
+          const freshUser = await load(`/api/users/${currentUser.id}`);
+          if (freshUser?.success && freshUser.data) {
+            const updated: User = { ...currentUser, ...freshUser.data, password: currentUser.password };
+            setCurrentUser(updated);
+            localStorage.setItem('doel_user', JSON.stringify(updated));
+          }
         }
 
-        const notifRes = await fetch('/api/notifications', { headers });
-        if (notifRes.ok) {
-          const notifData = await notifRes.json();
-          setNotifications(notifData);
+        // Fetch all modules in parallel — API enforces per-endpoint RBAC (403 → null → state unchanged)
+        const [notif, coachesRes, tripsRes, countersRes, usersRes, staffRes, finRes, salesRes, invRes, vouchersRes, bkashRes, busBdRes] = await Promise.all([
+          load('/api/notifications'),
+          load('/api/coaches'),
+          load('/api/trips'),
+          load('/api/counters'),
+          (role === AppRole.SUPER_ADMIN || role === AppRole.ADMIN || role === AppRole.IT) ? load(`/api/users?role=${role}`) : Promise.resolve(null),
+          load('/api/staff'),
+          load(`/api/finance?role=${role}`),
+          load(`/api/sales/records?role=${role}`),
+          load(`/api/inventory?role=${role}`),
+          load('/api/vouchers'),
+          load('/api/bkash'),
+          load('/api/busbd'),
+        ]);
+
+        if (notif?.success && Array.isArray(notif.data)) setNotifications(notif.data);
+
+        if (coachesRes?.success && Array.isArray(coachesRes.data)) setCoaches(coachesRes.data);
+        else if (Array.isArray(coachesRes)) setCoaches(coachesRes);
+
+        if (tripsRes?.success && Array.isArray(tripsRes.data)) setTrips(tripsRes.data);
+        else if (Array.isArray(tripsRes)) setTrips(tripsRes);
+
+        if (countersRes?.success && Array.isArray(countersRes.data)) setCounters(countersRes.data);
+        else if (Array.isArray(countersRes)) setCounters(countersRes);
+
+        if (usersRes?.success && Array.isArray(usersRes.data)) {
+          setUsers(prev => {
+            const dbIds = new Set(usersRes.data.map((u: User) => u.id));
+            return [...usersRes.data, ...prev.filter(u => !dbIds.has(u.id))];
+          });
         }
+
+        if (staffRes?.success && Array.isArray(staffRes.data)) setStaff(staffRes.data);
+
+        if (finRes?.success && Array.isArray(finRes.data?.transactions)) setTransactions(finRes.data.transactions);
+
+        if (salesRes?.success && Array.isArray(salesRes.data)) setTicketSales(salesRes.data);
+        else if (Array.isArray(salesRes)) setTicketSales(salesRes);
+
+        if (invRes?.success && Array.isArray(invRes.data)) setInventory(invRes.data);
+        else if (Array.isArray(invRes)) setInventory(invRes);
+
+        if (vouchersRes?.success && Array.isArray(vouchersRes.data)) setVouchers(vouchersRes.data);
+        else if (Array.isArray(vouchersRes)) setVouchers(vouchersRes);
+
+        if (bkashRes?.success && Array.isArray(bkashRes.data)) setBkashRecords(bkashRes.data);
+        else if (Array.isArray(bkashRes)) setBkashRecords(bkashRes);
+
+        if (busBdRes?.success && Array.isArray(busBdRes.data)) setBusBdRecords(busBdRes.data);
+        else if (Array.isArray(busBdRes)) setBusBdRecords(busBdRes);
+
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
     };
     if (isAuthenticated) fetchData();
   }, [isAuthenticated, refreshKey]);
+
+  // Re-fetch on tab focus so data stays fresh across user sessions
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const onFocus = () => setRefreshKey(prev => prev + 1);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     localStorage.setItem('doel_theme', isDarkMode ? 'dark' : 'light');
@@ -113,6 +194,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('doel_lang', language);
   }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('doel_tab', activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     localStorage.setItem('doel_site_name', siteName);
@@ -127,7 +212,28 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (username: string, password?: string) => {
+  const handleLogin = async (username: string, password?: string): Promise<boolean> => {
+    // Try API login first (MySQL-backed, bcrypt-verified)
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', username, password }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const user: User = { ...data.data, password };
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          setActiveTab('dashboard');
+          localStorage.setItem('doel_user', JSON.stringify(user));
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: check hardcoded users (dev / API-unavailable mode)
     const user = users.find(u => u.username === username);
     if (user && user.isApproved) {
       if (user.password && user.password !== password) return false;
@@ -140,17 +246,84 @@ const App: React.FC = () => {
     return false;
   };
 
-  const handleSignUp = (username: string, email: string, password?: string) => {
+  const handleSignUp = async (username: string, email: string, password?: string) => {
+    // Try API first, fall back to local state
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', username, email, password, role: 'COUNTER' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const newUser: User = {
+          id: data.data?.id || Math.random().toString(36).substr(2, 9),
+          username, email, password,
+          role: AppRole.COUNTER, isApproved: false,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        setUsers(prev => [...prev, newUser]);
+        return;
+      }
+    } catch (_) {}
+    // Local fallback
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
-      username,
-      email,
-      password,
-      role: AppRole.COUNTER,
-      isApproved: false,
-      createdAt: new Date().toISOString().split('T')[0]
+      username, email, password,
+      role: AppRole.COUNTER, isApproved: false,
+      createdAt: new Date().toISOString().split('T')[0],
     };
     setUsers(prev => [...prev, newUser]);
+  };
+
+  const addUser = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+    const role = currentUser?.role || '';
+    try {
+      const res = await fetch(`/api/users?role=${role}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-role': role, 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify(userData),
+      });
+      // Only try to parse JSON if response has content
+      if (res.ok || res.status === 400) {
+        const text = await res.text();
+        if (text) {
+          const data = JSON.parse(text);
+          // Business logic error (e.g. duplicate) — throw so modal shows it
+          if (!data.success) throw new Error(data.message || 'Failed to create user');
+          const newUser: User = {
+            ...userData,
+            id: data.data?.id || Math.random().toString(36).substr(2, 9),
+            createdAt: new Date().toISOString().split('T')[0],
+          };
+          setUsers(prev => [...prev, newUser]);
+          return;
+        }
+      }
+    } catch (err: any) {
+      // Re-throw only real business errors, not network/parse issues
+      if (err?.message && !err.message.includes('JSON') && !err.message.includes('fetch')) {
+        throw err;
+      }
+    }
+    // Network/API unavailable — add locally without error
+    const newUser: User = {
+      ...userData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setUsers(prev => [...prev, newUser]);
+  };
+
+  const deleteUser = async (userId: string) => {
+    const role = currentUser?.role || '';
+    try {
+      await fetch(`/api/users/${userId}?role=${role}`, {
+        method: 'DELETE',
+        headers: { 'x-user-role': role, 'x-user-id': currentUser?.id || '' },
+      });
+    } catch (_) {}
+    setUsers(prev => prev.filter(u => u.id !== userId));
   };
 
   const handleLogout = () => {
@@ -167,6 +340,13 @@ const App: React.FC = () => {
       setCurrentUser(updatedUser);
       localStorage.setItem('doel_user', JSON.stringify(updatedUser));
     }
+    // Sync to API (fire-and-forget)
+    const role = currentUser?.role || '';
+    fetch(`/api/users/${userId}?role=${role}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-user-role': role, 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
   };
 
   const handleUpdateCurrentUser = (updates: Partial<User>) => {
@@ -181,117 +361,273 @@ const App: React.FC = () => {
   };
 
   // Finance Handlers
-  const addTransaction = (tx: Transaction) => setTransactions(prev => [tx, ...prev]);
-  const updateTransaction = (id: string, updates: Transaction) => setTransactions(prev => prev.map(tx => tx.id === id ? updates : tx));
-  const deleteTransaction = (id: string) => setTransactions(prev => prev.filter(tx => tx.id !== id));
+  const addTransaction = async (tx: Transaction) => {
+    setTransactions(prev => [tx, ...prev]);
+    const ok = await apiMutate('POST', '/api/finance', tx);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const updateTransaction = async (id: string, updates: Transaction) => {
+    setTransactions(prev => prev.map(tx => tx.id === id ? updates : tx));
+    const ok = await apiMutate('PUT', `/api/finance/${id}`, updates);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const deleteTransaction = async (id: string) => {
+    setTransactions(prev => prev.filter(tx => tx.id !== id));
+    await apiMutate('DELETE', `/api/finance/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
 
   // Trip Handlers
-  const addTrip = (trip: Trip) => setTrips(prev => [trip, ...prev]);
-  const updateTrip = (id: string, updates: Trip) => setTrips(prev => prev.map(t => t.id === id ? updates : t));
-  const deleteTrip = (id: string) => setTrips(prev => prev.filter(t => t.id !== id));
+  const addTrip = async (trip: Trip) => {
+    setTrips(prev => [trip, ...prev]);
+    const ok = await apiMutate('POST', '/api/trips', trip);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const updateTrip = async (id: string, updates: Trip) => {
+    setTrips(prev => prev.map(t => t.id === id ? updates : t));
+    await apiMutate('PUT', `/api/trips/${id}`, updates);
+    setRefreshKey(prev => prev + 1); // always sync — reverts on failure, confirms on success
+  };
+  const deleteTrip = async (id: string) => {
+    setTrips(prev => prev.filter(t => t.id !== id));
+    await apiMutate('DELETE', `/api/trips/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
 
   // Inventory Handlers
-  const addInventory = (item: InventoryItem) => setInventory(prev => [item, ...prev]);
-  const updateInventory = (id: string, updates: InventoryItem) => setInventory(prev => prev.map(i => i.id === id ? updates : i));
-  const deleteInventory = (id: string) => setInventory(prev => prev.filter(i => i.id !== id));
-  
-  // Staff Handlers
-  const addStaff = (member: Staff) => setStaff(prev => [member, ...prev]);
-  const updateStaff = (id: string, updates: Staff) => setStaff(prev => prev.map(s => s.id === id ? updates : s));
-  const deleteStaff = (id: string) => setStaff(prev => prev.filter(s => s.id !== id));
-  
-  // Coach Handlers
-  const addCoach = (coach: Coach) => setCoaches(prev => [coach, ...prev]);
-  const updateCoach = (id: string, updates: Coach) => setCoaches(prev => prev.map(c => c.id === id ? updates : c));
-  const deleteCoach = (id: string) => setCoaches(prev => prev.filter(c => c.id !== id));
+  const addInventory = async (item: InventoryItem) => {
+    setInventory(prev => [item, ...prev]); // show immediately
+    await apiMutate('POST', '/api/inventory', item);
+    setRefreshKey(prev => prev + 1); // confirms from DB, or reverts if API rejected
+  };
+  const updateInventory = async (id: string, updates: InventoryItem) => {
+    setInventory(prev => prev.map(i => i.id === id ? updates : i));
+    const ok = await apiMutate('PUT', `/api/inventory/${id}`, updates);
+    if (ok) setRefreshKey(prev => prev + 1);
+    else setRefreshKey(prev => prev + 1); // revert on failure
+  };
+  const deleteInventory = async (id: string) => {
+    setInventory(prev => prev.filter(i => i.id !== id));
+    await apiMutate('DELETE', `/api/inventory/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
 
-  const addCounter = (counter: Counter) => setCounters(prev => [counter, ...prev]);
-  const updateCounter = (id: string, updates: Partial<Counter>) => setCounters(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  const deleteCounter = (id: string) => setCounters(prev => prev.filter(c => c.id !== id));
+  // Staff Handlers — HR.tsx owns the API call; these just sync local state and trigger refresh
+  const addStaff = (member: Staff) => {
+    setStaff(prev => [member, ...prev]);
+    setRefreshKey(prev => prev + 1);
+  };
+  const updateStaff = (id: string, updates: Staff) => {
+    setStaff(prev => prev.map(s => s.id === id ? updates : s));
+    setRefreshKey(prev => prev + 1);
+  };
+  const deleteStaff = async (id: string) => {
+    setStaff(prev => prev.filter(s => s.id !== id));
+    await apiMutate('DELETE', `/api/staff/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Coach Handlers
+  const addCoach = async (coach: Coach): Promise<void> => {
+    const role = currentUser?.role || '';
+    try {
+      const res = await fetch('/api/coaches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-role': role, 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify(coach),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to save coach');
+      const savedId = data.data?.id || coach.id;
+      setCoaches(prev => [{ ...coach, id: savedId }, ...prev]);
+    } catch (err: any) {
+      throw err;
+    }
+  };
+  const updateCoach = async (id: string, updates: Coach) => {
+    setCoaches(prev => prev.map(c => c.id === id ? updates : c));
+    const ok = await apiMutate('PUT', `/api/coaches/${id}`, updates);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const deleteCoach = async (id: string) => {
+    setCoaches(prev => prev.filter(c => c.id !== id));
+    await apiMutate('DELETE', `/api/coaches/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const addCounter = async (counter: Counter) => {
+    setCounters(prev => [counter, ...prev]);
+    const ok = await apiMutate('POST', '/api/counters', counter);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const updateCounter = async (id: string, updates: Partial<Counter>) => {
+    setCounters(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    const ok = await apiMutate('PUT', `/api/counters/${id}`, updates);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const deleteCounter = async (id: string) => {
+    setCounters(prev => prev.filter(c => c.id !== id));
+    await apiMutate('DELETE', `/api/counters/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
 
   const adjustInventoryStock = (itemId: string, amount: number) => {
-    setInventory(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, stock: Math.max(0, item.stock - amount), lastUpdated: new Date().toISOString().split('T')[0] } 
-        : item
-    ));
+    setInventory(prev => {
+      const updated = prev.map(item =>
+        item.id === itemId
+          ? { ...item, stock: Math.max(0, item.stock - amount), lastUpdated: new Date().toISOString().split('T')[0] }
+          : item
+      );
+      const changedItem = updated.find(item => item.id === itemId);
+      if (changedItem) {
+        apiMutate('PUT', `/api/inventory/${itemId}`, changedItem);
+      }
+      return updated;
+    });
   };
 
   // Ticket Sales Handlers
-  const addTicketRecord = (record: TicketSalesRecord) => {
-    setTicketSales(prev => [record, ...prev]);
-    const incomeTx: Transaction = {
-      id: `TX-INC-${record.id}`,
-      date: record.date,
-      type: 'Income',
-      category: 'Ticket Sales',
-      amount: record.totalTaka,
-      description: `Trip Income: ${record.regNo} (Coach: ${record.coachNo})`
-    };
-    const expenseTx: Transaction = {
-      id: `TX-EXP-${record.id}`,
-      date: record.date,
-      type: 'Expense',
-      category: 'Trip Operating Cost',
-      amount: record.totalCost,
-      description: `Trip Cost: ${record.regNo} (Fuel + Exp)`
-    };
-    setTransactions(prev => [incomeTx, expenseTx, ...prev]);
+  const addTicketRecord = async (record: TicketSalesRecord) => {
+    setTicketSales(prev => [record, ...prev]); // optimistic
+    const ok = await apiMutate('POST', '/api/sales/records', record);
+    if (ok) {
+      // Log associated finance transactions
+      const incomeTx: Transaction = {
+        id: `TX-INC-${record.id}`,
+        date: record.date,
+        type: 'Income',
+        category: 'Ticket Sales',
+        amount: record.totalTaka,
+        description: `Trip Income: ${record.regNo} (Coach: ${record.coachNo})`
+      };
+      const expenseTx: Transaction = {
+        id: `TX-EXP-${record.id}`,
+        date: record.date,
+        type: 'Expense',
+        category: 'Trip Operating Cost',
+        amount: record.totalCost,
+        description: `Trip Cost: ${record.regNo} (Fuel + Exp)`
+      };
+      apiSync('POST', '/api/finance', incomeTx);
+      apiSync('POST', '/api/finance', expenseTx);
+      setRefreshKey(prev => prev + 1); // sync DB-assigned ID + finance
+    }
   };
 
-  const updateTicketRecord = (id: string, updates: TicketSalesRecord) => {
-    setTicketSales(prev => prev.map(r => r.id === id ? updates : r));
-    setTransactions(prev => prev.map(tx => {
-      if (tx.id === `TX-INC-${id}`) {
-        return {
-          ...tx,
-          amount: updates.totalTaka,
-          description: `Trip Income: ${updates.regNo} (Coach: ${updates.coachNo})`
-        };
-      }
-      if (tx.id === `TX-EXP-${id}`) {
-        return {
-          ...tx,
-          amount: updates.totalCost,
-          description: `Trip Cost: ${updates.regNo} (Fuel + Exp)`
-        };
-      }
-      return tx;
-    }));
+  const updateTicketRecord = async (id: string, updates: TicketSalesRecord) => {
+    setTicketSales(prev => prev.map(r => r.id === id ? updates : r)); // optimistic
+    const ok = await apiMutate('PUT', `/api/sales/records/${id}`, updates);
+    if (ok) {
+      // Sync associated finance records
+      apiSync('PUT', `/api/finance/TX-INC-${id}`, {
+        amount: updates.totalTaka,
+        description: `Trip Income: ${updates.regNo} (Coach: ${updates.coachNo})`
+      });
+      apiSync('PUT', `/api/finance/TX-EXP-${id}`, {
+        amount: updates.totalCost,
+        description: `Trip Cost: ${updates.regNo} (Fuel + Exp)`
+      });
+      setRefreshKey(prev => prev + 1); // confirm DB truth
+    } else {
+      setRefreshKey(prev => prev + 1); // revert optimistic if API rejected
+    }
   };
 
-  const deleteTicketRecord = (id: string) => {
-    setTicketSales(prev => prev.filter(r => r.id !== id));
-    // Also cleanup linked transactions if any
-    setTransactions(prev => prev.filter(tx => tx.id !== `TX-INC-${id}` && tx.id !== `TX-EXP-${id}`));
+  // Voucher Handlers
+  const addVoucher = async (voucher: Voucher) => {
+    setVouchers(prev => [voucher, ...prev]);
+    const ok = await apiMutate('POST', '/api/vouchers', voucher);
+    if (ok) setRefreshKey(prev => prev + 1);
+  };
+  const deleteVoucher = async (id: string) => {
+    setVouchers(prev => prev.filter(v => v.id !== id));
+    await apiMutate('DELETE', `/api/vouchers/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // bKash Handlers
+  const addBkashRecord = async (record: BkashRecord) => {
+    setBkashRecords(prev => [record, ...prev]);
+    await apiMutate('POST', '/api/bkash', record);
+    setRefreshKey(prev => prev + 1);
+  };
+  const updateBkashRecord = async (id: string, record: BkashRecord) => {
+    setBkashRecords(prev => prev.map(r => r.id === id ? record : r));
+    await apiMutate('PUT', `/api/bkash/${id}`, record);
+    setRefreshKey(prev => prev + 1);
+  };
+  const deleteBkashRecord = async (id: string) => {
+    setBkashRecords(prev => prev.filter(r => r.id !== id));
+    await apiMutate('DELETE', `/api/bkash/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Bus BD Handlers
+  const addBusBdRecord = async (record: BusBdRecord) => {
+    setBusBdRecords(prev => [record, ...prev]);
+    await apiMutate('POST', '/api/busbd', record);
+    setRefreshKey(prev => prev + 1);
+  };
+  const updateBusBdRecord = async (id: string, record: BusBdRecord) => {
+    setBusBdRecords(prev => prev.map(r => r.id === id ? record : r));
+    await apiMutate('PUT', `/api/busbd/${id}`, record);
+    setRefreshKey(prev => prev + 1);
+  };
+  const deleteBusBdRecord = async (id: string) => {
+    setBusBdRecords(prev => prev.filter(r => r.id !== id));
+    await apiMutate('DELETE', `/api/busbd/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const deleteTicketRecord = async (id: string) => {
+    setTicketSales(prev => prev.filter(r => r.id !== id)); // optimistic
+    await apiMutate('DELETE', `/api/sales/records/${id}`);
+    apiSync('DELETE', `/api/finance/TX-INC-${id}`);
+    apiSync('DELETE', `/api/finance/TX-EXP-${id}`);
+    setRefreshKey(prev => prev + 1);
   };
 
   const finalizeTripIntoSales = (trip: Trip) => {
+    const completed = { ...trip, status: 'Completed' as Trip['status'] };
     setPendingSalesTrip(trip);
-    setTrips(prev => prev.map(t => t.id === trip.id ? { ...t, status: 'Completed' } : t));
+    setTrips(prev => prev.map(t => t.id === trip.id ? completed : t));
+    apiMutate('PUT', `/api/trips/${trip.id}`, completed); // persist to DB
     setActiveTab('ticketSalesRecord');
   };
 
-  const handleDataReset = () => {
+  const handleDataReset = async () => {
     if (currentUser?.role !== AppRole.SUPER_ADMIN) return;
-    setTrips(MOCK_TRIPS);
-    setTransactions(MOCK_FINANCE);
-    setInventory(MOCK_INVENTORY);
-    setStaff(MOCK_STAFF);
-    setTicketSales(MOCK_TICKET_SALES);
-    setCounters(MOCK_COUNTERS);
-    setCoaches(MOCK_COACHES);
-    setSiteName('Doel Express');
-    setSiteLogo(DEFAULT_LOGO);
-    
-    // Clear all local storage to reset filters, themes, etc.
-    localStorage.clear();
-    // Re-trigger theme application if needed, though clear() might remove 'doel_theme'
-    // The useEffect for isDarkMode will re-save it anyway.
+
+    // Factory Reset — wipe ALL module data to empty (clean slate)
+    // Only USERS (Manage Users) are preserved
+    setTrips([]);
+    setTransactions([]);
+    setInventory([]);
+    setStaff([]);
+    setCoaches([]);
+    setCounters([]);
+    setTicketSales([]);
+    setNotifications([]);
+    setVouchers([]);
+    setPendingSalesTrip(null);
+
+    // Sync to API (wipe db.json too, preserving users)
+    try {
+      await fetch('/api/system/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-role': AppRole.SUPER_ADMIN },
+      });
+    } catch (_) {}
   };
 
   const hasPermission = (tab: string) => {
     if (!currentUser) return false;
+    if (currentUser.role === AppRole.SUPER_ADMIN) return true;
+    // Custom per-user permissions override role defaults
+    if (currentUser.permissions && currentUser.permissions.length > 0) {
+      return currentUser.permissions.includes(tab);
+    }
+    // Fall back to role-based defaults
     const allowedRoles = PERMISSIONS[tab];
     return allowedRoles ? allowedRoles.includes(currentUser.role) : false;
   };
@@ -299,6 +635,15 @@ const App: React.FC = () => {
   const triggerAiRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
   }, []);
+
+  const handleRefresh = useCallback(() => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1);
+      setIsRefreshing(false);
+    }, 600);
+  }, [isRefreshing]);
 
   if (!isAuthenticated) {
     return (
@@ -337,51 +682,103 @@ const App: React.FC = () => {
       case 'dashboard': return <Dashboard trips={trips} transactions={transactions} staff={staff} ticketSales={ticketSales} lang={language} />;
       case 'fleetManagement': return (
         <div className="space-y-12">
-          <CoachRegister coaches={coaches} onAdd={addCoach} onUpdate={updateCoach} onRemove={deleteCoach} lang={language} userRole={currentUser?.role} />
+          <CoachRegister
+            coaches={coaches}
+            onAdd={addCoach}
+            onUpdate={updateCoach}
+            onRemove={deleteCoach}
+            lang={language}
+            userRole={currentUser?.role}
+            canManage={hasPermission('fleetManagement')}
+          />
           <div className="border-t-4 border-slate-100 dark:border-slate-800 pt-12">
-            <Scheduling trips={trips} staff={staff} coaches={coaches} onAdd={addTrip} onUpdate={updateTrip} onDelete={deleteTrip} onFinalize={finalizeTripIntoSales} lang={language} />
+            <Scheduling
+              trips={trips}
+              staff={staff}
+              coaches={coaches}
+              onAdd={addTrip}
+              onUpdate={updateTrip}
+              onDelete={deleteTrip}
+              onFinalize={finalizeTripIntoSales}
+              lang={language}
+              userRole={currentUser?.role}
+              canWrite={hasPermission('fleetManagement')}
+            />
           </div>
         </div>
       );
       case 'ticketSalesRecord': return (
-        <TicketSalesRecordComponent 
-          records={ticketSales} 
-          trips={trips} 
-          staff={staff} 
-          coaches={coaches} 
-          onAdd={addTicketRecord} 
-          onUpdate={updateTicketRecord} 
+        <TicketSalesRecordComponent
+          records={ticketSales}
+          trips={trips}
+          staff={staff}
+          coaches={coaches}
+          onAdd={addTicketRecord}
+          onUpdate={updateTicketRecord}
           onDelete={deleteTicketRecord}
-          lang={language} 
+          lang={language}
           userRole={currentUser?.role}
+          canWrite={hasPermission('ticketSalesRecord')}
           prefillTrip={pendingSalesTrip}
           onClearPrefill={() => setPendingSalesTrip(null)}
         />
       );
       case 'counters': return (
-        <CounterManagement 
-          counters={counters} 
-          users={users} 
-          trips={trips} 
-          currentUser={currentUser} 
-          onAddCounter={addCounter} 
-          onUpdateCounter={updateCounter} 
+        <CounterManagement
+          counters={counters}
+          users={users}
+          trips={trips}
+          currentUser={currentUser}
+          onAddCounter={addCounter}
+          onUpdateCounter={updateCounter}
           onAddSalesRecord={addTicketRecord}
-          lang={language} 
+          lang={language}
+          canWrite={hasPermission('counters')}
         />
       );
       case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} lang={language} />;
-      case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} userRole={currentUser?.role} />;
-      case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} userRole={currentUser?.role} />;
-      case 'maintenance': return <Maintenance trips={trips} inventory={inventory} onUseInventory={adjustInventoryStock} lang={language} />;
+      case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} userRole={currentUser?.role} userId={currentUser?.id} counters={counters} />;
+      case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} userRole={currentUser?.role} userId={currentUser?.id} />;
+      case 'maintenance': return <Maintenance trips={trips} inventory={inventory} coaches={coaches} onUseInventory={adjustInventoryStock} lang={language} />;
       case 'reports': return <Reports trips={trips} transactions={transactions} staff={staff} lang={language} />;
-      case 'userManagement': return <UserManagement users={users} onUpdateUser={updateUserInfo} lang={language} />;
+      case 'userManagement': return <UserManagement users={users} onUpdateUser={updateUserInfo} onAddUser={addUser} onDeleteUser={deleteUser} lang={language} />;
+      case 'vouchers': return (
+        <Vouchers
+          vouchers={vouchers}
+          onAdd={addVoucher}
+          onDelete={deleteVoucher}
+          lang={language}
+          canWrite={hasPermission('vouchers')}
+        />
+      );
+      case 'bkash': return (
+        <Bkash
+          records={bkashRecords}
+          onAdd={addBkashRecord}
+          onUpdate={updateBkashRecord}
+          onDelete={deleteBkashRecord}
+          lang={language}
+          userRole={currentUser?.role}
+          canWrite={hasPermission('bkash')}
+        />
+      );
+      case 'busbd': return (
+        <BusBd
+          records={busBdRecords}
+          onAdd={addBusBdRecord}
+          onUpdate={updateBusBdRecord}
+          onDelete={deleteBusBdRecord}
+          lang={language}
+          userRole={currentUser?.role}
+          canWrite={hasPermission('busbd')}
+        />
+      );
       case 'settings': return (
-        <Settings 
-          lang={language} 
-          user={currentUser} 
-          onUpdateProfile={handleUpdateCurrentUser} 
-          userRole={currentUser?.role} 
+        <Settings
+          lang={language}
+          user={currentUser}
+          onUpdateProfile={handleUpdateCurrentUser}
+          userRole={currentUser?.role}
           onResetData={handleDataReset}
           siteName={siteName}
           siteLogo={siteLogo}
@@ -405,10 +802,13 @@ const App: React.FC = () => {
         hasPermission={hasPermission}
         siteName={siteName}
         siteLogo={siteLogo}
-        notificationCount={notifications.filter(n => !n.read).length}
+        notificationCount={
+          notifications.filter(n => !n.read).length +
+          staff.filter(s => s.expiryDate && new Date(s.expiryDate) < new Date() && s.status !== 'Resigned' && s.status !== 'Terminated').length
+        }
       />
 
-      <main className="flex-1 lg:ml-20 flex flex-col min-h-screen overflow-x-hidden transition-all duration-300">
+      <main className="flex-1 lg:ml-[260px] flex flex-col min-h-screen overflow-x-hidden">
         <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all">
@@ -427,6 +827,19 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-4">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh page data"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-black text-[10px] sm:text-xs transition-all shadow-sm border ${
+                isRefreshing
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 border-blue-200 dark:border-blue-700 cursor-not-allowed'
+                  : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95'
+              }`}
+            >
+              <i className={`fa-solid fa-arrows-rotate text-sm ${isRefreshing ? 'animate-spin' : ''}`}></i>
+              <span className="hidden sm:block">{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+            </button>
             <button onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')} className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-blue-600 hover:text-white transition-all shadow-sm font-bold text-[10px] sm:text-xs">
               <i className="fa-solid fa-globe"></i>
               <span className="hidden xs:block">{language === 'en' ? 'BN' : 'EN'}</span>

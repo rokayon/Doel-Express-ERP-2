@@ -16,6 +16,7 @@ export const translations = {
     reports: "Reports",
     settings: "Settings",
     userManagement: "Admin Control",
+    vouchers: "Vouchers",
     adminConsole: "Admin Console",
     activeSession: "Active Session",
     streamlinedOps: "Streamlined operations for Bangladesh's premium bus fleet.",
@@ -217,7 +218,20 @@ export const translations = {
     ticketsSold: "Tickets Sold",
     ticketPrice: "Ticket Price",
     discounts: "Discount",
-    salesCommission: "Sales Commission"
+    salesCommission: "Sales Commission",
+    // Settings
+    preferences: "Preferences",
+    emailNotifications: "Email Notifications",
+    securitySettings: "Security Settings",
+    changePassword: "Change Password",
+    confirmPassword: "Confirm Password",
+    // CoachRegister
+    seats: "Seats",
+    // Login
+    ticketing: "Ticketing",
+    tracking: "Live Tracking",
+    bkash: "bKash",
+    busbd: "Bus BD",
   },
   bn: {
     dashboard: "ড্যাশবোর্ড",
@@ -233,6 +247,7 @@ export const translations = {
     reports: "প্রতিবেদন",
     settings: "সেটিংস",
     userManagement: "অ্যাডমিন কন্ট্রোল",
+    vouchers: "ভাউচারসমূহ",
     adminConsole: "অ্যাডমিন কনসোল",
     activeSession: "সক্রিয় সেশন",
     streamlinedOps: "বাংলাদেশের প্রিমিয়াম বাস বহরের জন্য আধুনিক পরিচালনা ব্যবস্থা।",
@@ -434,6 +449,19 @@ export const translations = {
     ticketsSold: "টিকিট বিক্রয়",
     ticketPrice: "টিকিটের মূল্য",
     discounts: "ছাড়",
-    salesCommission: "বিক্রয় কমিশন"
+    salesCommission: "বিক্রয় কমিশন",
+    // Settings
+    preferences: "পছন্দসমূহ",
+    emailNotifications: "ইমেইল বিজ্ঞপ্তি",
+    securitySettings: "নিরাপত্তা সেটিংস",
+    changePassword: "পাসওয়ার্ড পরিবর্তন",
+    confirmPassword: "পাসওয়ার্ড নিশ্চিত করুন",
+    // CoachRegister
+    seats: "আসন",
+    // Login
+    ticketing: "টিকেটিং",
+    tracking: "লাইভ ট্র্যাকিং",
+    bkash: "বিকাশ",
+    busbd: "বাস বিডি",
   }
 };

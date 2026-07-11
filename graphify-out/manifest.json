@@ -1,0 +1,194 @@
+{
+  "D:\\Zojon Digital\\Doel-Express-ERP\\App.tsx": {
+    "mtime": 1779201037.9026444,
+    "hash": "6b7bb0db73557fa7f7d5e7fb2da17a32"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\constants.tsx": {
+    "mtime": 1775930614.4338226,
+    "hash": "66a0d3a20d93fd2017c74570689676aa"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\index.tsx": {
+    "mtime": 1775580701.617329,
+    "hash": "a6db34dac786540fd7ae835aaa6f543f"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\postcss.config.js": {
+    "mtime": 1775924170.2439928,
+    "hash": "c735540bb63936a123bc867d950c9f69"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\server.ts": {
+    "mtime": 1776535931.1953063,
+    "hash": "792a3d5946f02670dc8e30085ddb8103"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\tailwind.config.js": {
+    "mtime": 1775924166.7930963,
+    "hash": "5f343e772bda2364ccbdb3b50d334835"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\translations.ts": {
+    "mtime": 1775931121.2799275,
+    "hash": "53845e382272887e144f39fa2a67bf4e"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\types.ts": {
+    "mtime": 1775931111.573328,
+    "hash": "7b7893d61e4f97bbde96624187041e90"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\vite.config.ts": {
+    "mtime": 1775580701.755334,
+    "hash": "b02247fc15de1a3ff3a9cb4c1bbe3fa1"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\db.config.php": {
+    "mtime": 1779198606.0499933,
+    "hash": "24daac5a6a27b627f7aeda01781d51aa"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\db.php": {
+    "mtime": 1779201697.769097,
+    "hash": "665aba537c20f97864cb07539c1bc1cc"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\helpers.php": {
+    "mtime": 1779193584.4238217,
+    "hash": "a47aaa3b961f5e296a49ff37d1a4dd3e"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\index.php": {
+    "mtime": 1776535991.6289232,
+    "hash": "91a4c06238361e897a9166e10a1fc75e"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\schema.php": {
+    "mtime": 1779198752.1292007,
+    "hash": "1bb18feaae99c670076fc493cb40400d"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\auth.php": {
+    "mtime": 1775923993.6933675,
+    "hash": "9693b0bf11dec6e4974d92d03b7f3d32"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\coaches.php": {
+    "mtime": 1779201024.747097,
+    "hash": "a90d21b96db3b6a26ccf098d7cf9ddcf"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\counters.php": {
+    "mtime": 1776536743.522642,
+    "hash": "d491edc8436743059c9f73caacd86313"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\finance.php": {
+    "mtime": 1776536605.5845764,
+    "hash": "5276246fdbdea65a6f268903b9ba1069"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\forecast.php": {
+    "mtime": 1775923984.465845,
+    "hash": "c64ad8dc135724ad15375b64f38af182"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\inventory.php": {
+    "mtime": 1776536752.0418818,
+    "hash": "b14976249ae9128f5a4e678fedf7a0c9"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\notifications.php": {
+    "mtime": 1779198764.655666,
+    "hash": "0bbff08b468348fa5775a3d5ea1102a5"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\sales.php": {
+    "mtime": 1776536675.821525,
+    "hash": "1d53d8544677bcbd672bceefe8302944"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\staff.php": {
+    "mtime": 1779200296.355421,
+    "hash": "6e48d815e395d4e29abc829df8eb3f87"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\trips.php": {
+    "mtime": 1776536743.5589948,
+    "hash": "0fae05a72729c6acb537b2425253e576"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\routes\\users.php": {
+    "mtime": 1775924018.4927297,
+    "hash": "9ed67f460e561143f42d7c04c413c77a"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\CoachRegister.tsx": {
+    "mtime": 1779201111.2184358,
+    "hash": "627ab6cbd1e9a9b6e09f62d8de00a9ea"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\CounterManagement.tsx": {
+    "mtime": 1779202780.2159114,
+    "hash": "9eb335fd2ad0bb6e1c2a2d508962198d"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Dashboard.tsx": {
+    "mtime": 1775585197.6527927,
+    "hash": "b8def954ddbc398dd277841a3367d12d"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Finance.tsx": {
+    "mtime": 1779202563.5487523,
+    "hash": "cad9f12f3c629d2de1cd8348820b2a6f"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\HR.tsx": {
+    "mtime": 1779200288.4535313,
+    "hash": "a2e8b6776015b6944cfb8d02b76bbae9"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Inventory.tsx": {
+    "mtime": 1775580701.3833797,
+    "hash": "9e66f19b9c4a219b7261d139d81e2dfa"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Login.tsx": {
+    "mtime": 1779193618.5642548,
+    "hash": "0f9ecfa1ce12caa8ff8553285a30e5cb"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Logo.tsx": {
+    "mtime": 1775580701.3480968,
+    "hash": "be7e5e1e4d05a0fab3e899480d6518e1"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Maintenance.tsx": {
+    "mtime": 1779201157.418094,
+    "hash": "57a4341cdb235cb38bd25443cd210e50"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Reports.tsx": {
+    "mtime": 1779200265.1547763,
+    "hash": "207e6c136cddaba9ba00b88c0050b165"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Scheduling.tsx": {
+    "mtime": 1775580701.4412885,
+    "hash": "b457b3f27a96101e842dc16c84448054"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Settings.tsx": {
+    "mtime": 1775931737.1492877,
+    "hash": "41fe3b0967c5930df3558c14ba5031e9"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Sidebar.tsx": {
+    "mtime": 1775580701.4866397,
+    "hash": "7a70d403284136c260dadac4b8f214e1"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\StatCard.tsx": {
+    "mtime": 1775580701.475548,
+    "hash": "72c89c71f0e1e6a50ea05c4873d82ca6"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Ticketing.tsx": {
+    "mtime": 1775580701.463386,
+    "hash": "44efc456c2ac16d7cdbb8b14bca6920e"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\TicketSalesRecord.tsx": {
+    "mtime": 1779200320.8499,
+    "hash": "be5683737e17d0b03282cc752271714e"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\Tracking.tsx": {
+    "mtime": 1775580701.510061,
+    "hash": "907aa1274ecaa781eac619cd8d9c0244"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\components\\UserManagement.tsx": {
+    "mtime": 1775930909.6407034,
+    "hash": "338d9086b89ddafbe93d1e070bb72e47"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\DEPLOYMENT_CHECKLIST.md": {
+    "mtime": 1775921989.6065035,
+    "hash": "2bef1baef10175674f38b572f6d79aa1"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\index.html": {
+    "mtime": 1775924196.5025811,
+    "hash": "f75f899a3a61524d90272e365d5154a4"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\problems.md": {
+    "mtime": 1779193104.2976127,
+    "hash": "43f3f2d2c41802345e424d43879ba085"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\README.md": {
+    "mtime": 1775921996.5615232,
+    "hash": "5e2f833aaa362efa73c653d4a6b856df"
+  },
+  "D:\\Zojon Digital\\Doel-Express-ERP\\api\\README.md": {
+    "mtime": 1775587697.1141143,
+    "hash": "16428afa7d6570259497933afd835699"
+  }
+}

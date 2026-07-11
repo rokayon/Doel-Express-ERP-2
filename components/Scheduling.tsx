@@ -11,13 +11,17 @@ interface SchedulingProps {
   onUpdate: (id: string, trip: Trip) => void;
   onDelete: (id: string) => void;
   lang: Language;
-  onFinalize?: (trip: Trip) => void; 
+  onFinalize?: (trip: Trip) => void;
+  userRole?: string;
+  canWrite?: boolean;
 }
 
-const Scheduling: React.FC<SchedulingProps> = ({ trips, staff, coaches, onAdd, onUpdate, onDelete, lang, onFinalize }) => {
+const Scheduling: React.FC<SchedulingProps> = ({ trips, staff, coaches, onAdd, onUpdate, onDelete, lang, onFinalize, userRole, canWrite }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const t = translations[lang];
+
+  const canEdit = canWrite ?? (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || userRole === 'MANAGING_DIRECTOR' || userRole === 'DIRECTOR' || userRole === 'MANAGER');
   
   const [formData, setFormData] = useState({
     coachId: '', 
@@ -100,13 +104,15 @@ const Scheduling: React.FC<SchedulingProps> = ({ trips, staff, coaches, onAdd, o
           <h2 className="text-2xl font-black tracking-tight">{t.scheduling}</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Initialize voyages and fleet deployment from registry data</p>
         </div>
-        <button 
-          onClick={() => { if(showForm) closeForm(); else setShowForm(true); }}
-          className={`flex-1 sm:flex-none px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg font-black text-xs uppercase tracking-widest ${showForm ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-        >
-          <i className={`fa-solid ${showForm ? 'fa-xmark' : 'fa-bus-simple'}`}></i> 
-          {showForm ? (lang === 'en' ? 'Close Entry' : 'এন্ট্রি বন্ধ করুন') : t.newTrip}
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => { if(showForm) closeForm(); else setShowForm(true); }}
+            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg font-black text-xs uppercase tracking-widest ${showForm ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+          >
+            <i className={`fa-solid ${showForm ? 'fa-xmark' : 'fa-bus-simple'}`}></i>
+            {showForm ? (lang === 'en' ? 'Close Entry' : 'এন্ট্রি বন্ধ করুন') : t.newTrip}
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -124,12 +130,12 @@ const Scheduling: React.FC<SchedulingProps> = ({ trips, staff, coaches, onAdd, o
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block ml-1">Define Route</label>
-                <input required list="route-suggestions" value={formData.route} onChange={e => setFormData({...formData, route: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" />
+                <input required list="route-suggestions" value={formData.route} onChange={e => setFormData({...formData, route: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 dark:text-white" />
                 <datalist id="route-suggestions">{existingRoutes.map(r => <option key={r} value={r} />)}</datalist>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block ml-1">Departure Schedule</label>
-                <input required type="datetime-local" value={formData.departureTime} onChange={e => setFormData({...formData, departureTime: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" />
+                <input required type="datetime-local" value={formData.departureTime} onChange={e => setFormData({...formData, departureTime: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 dark:text-white" />
               </div>
             </div>
 
@@ -193,9 +199,9 @@ const Scheduling: React.FC<SchedulingProps> = ({ trips, staff, coaches, onAdd, o
                         <div className={`px-4 py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 text-center min-w-[100px]`}>
                            <p className={`text-[10px] font-black uppercase tracking-widest ${trip.status === 'On Trip' ? 'text-blue-500' : trip.status === 'Completed' ? 'text-emerald-500' : 'text-slate-400'}`}>{trip.status}</p>
                         </div>
-                        <button onClick={() => handleEdit(trip)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"><i className="fa-solid fa-pen-to-square"></i></button>
-                        <button onClick={() => handleDelete(trip.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg"><i className="fa-solid fa-trash-can"></i></button>
-                        {onFinalize && trip.status !== 'Completed' && (
+                        {canEdit && <button onClick={() => handleEdit(trip)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"><i className="fa-solid fa-pen-to-square"></i></button>}
+                        {canEdit && <button onClick={() => handleDelete(trip.id)} className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg"><i className="fa-solid fa-trash-can"></i></button>}
+                        {canEdit && onFinalize && trip.status !== 'Completed' && (
                           <button onClick={() => onFinalize(trip)} className="px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">FINALIZE SALES</button>
                         )}
                      </div>

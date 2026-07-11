@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction } from '../types';
+import { Transaction, Counter } from '../types';
 import { Language, translations } from '../translations';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -11,9 +11,11 @@ interface FinanceProps {
   onDelete: (id: string) => void;
   lang: Language;
   userRole?: string;
+  userId?: string;
+  counters?: Counter[];
 }
 
-const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, onAdd, onUpdate, onDelete, lang, userRole }) => {
+const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, onAdd, onUpdate, onDelete, lang, userRole, userId, counters = [] }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
@@ -36,19 +38,19 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
     category: '',
     amount: '',
     type: 'Income' as 'Income' | 'Expense',
-    branch: 'Dhaka'
+    branch: counters.length > 0 ? counters[0].name : ''
   });
 
   const fetchReport = async () => {
     setLoading(true);
     try {
       const query = new URLSearchParams(filters).toString();
-      const res = await fetch(`/api/finance/report?${query}`, {
-        headers: { 'x-user-role': userRole || '' }
+      const res = await fetch(`/api/finance?${query}`, {
+        headers: { 'x-user-role': userRole || '', 'x-user-id': userId || '' }
       });
       if (res.ok) {
-        const data = await res.json();
-        setReportData(data);
+        const json = await res.json();
+        setReportData(json.data ?? json);
       }
     } catch (error) {
       console.error('Failed to fetch report:', error);
@@ -75,11 +77,47 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
   };
 
   const handleExport = (type: 'excel' | 'pdf') => {
-    window.open(`/api/finance/export/${type}?role=${userRole || ''}`, '_blank');
+    if (type === 'pdf') {
+      window.print();
+      return;
+    }
+    const csvDate = (d: string) => d ? `"=""${d}"""` : '';
+    const txList: any[] = reportData?.transactions?.length ? reportData.transactions : initialTransactions;
+    const headers = ['Date', 'Description', 'Category', 'Branch', 'Type', 'Amount (BDT)'];
+    const rows = txList.map((tx: any) => [
+      csvDate(tx.date),
+      `"${(tx.description || '').replace(/"/g, '""')}"`,
+      tx.category || '',
+      tx.branch || 'N/A',
+      tx.type,
+      Number(tx.amount).toFixed(2)
+    ]);
+    const summary = [
+      [], ['Summary'],
+      ['Total Income', '', '', '', '', Number(totals.total_income).toFixed(2)],
+      ['Total Expense', '', '', '', '', Number(totals.total_expense).toFixed(2)],
+      ['Net Profit', '', '', '', '', Number(totals.net_profit).toFixed(2)],
+    ];
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => r.join(',')),
+      ...summary.map(r => r.join(','))
+    ].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Finance_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const existingCategories = Array.from(new Set(initialTransactions.map(tx => tx.category)));
-  const existingCounters = ['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Abdullahpur', 'Coxsbazar', 'Sonargaon'];
+  const existingCounters = counters.length > 0
+    ? counters.map(c => c.name)
+    : Array.from(new Set(initialTransactions.map(tx => (tx as any).branch).filter(Boolean)));
 
   const handleEdit = (tx: Transaction) => {
     setEditingId(tx.id);
@@ -125,21 +163,50 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
   const closeModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setFormData({ date: new Date().toISOString().split('T')[0], description: '', category: '', amount: '', type: 'Income', branch: 'Dhaka' });
+    setFormData({ date: new Date().toISOString().split('T')[0], description: '', category: '', amount: '', type: 'Income', branch: counters.length > 0 ? counters[0].name : '' });
   };
 
-  const totals = reportData || { total_income: 0, total_expense: 0, net_profit: 0, chart_data: [] };
+  const periodLabel = useMemo(() => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (filters.period === 'daily') return `Today · ${fmt(now)}`;
+    if (filters.period === 'weekly') {
+      const start = new Date(now); start.setDate(now.getDate() - 6);
+      return `${fmt(start)} — ${fmt(now)}`;
+    }
+    if (filters.period === 'monthly') {
+      const from = new Date(now.getFullYear(), now.getMonth(), 2);
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return `${fmt(from)} — ${fmt(to)}`;
+    }
+    if (filters.period === 'custom' && filters.from && filters.to) return `${filters.from} — ${filters.to}`;
+    return '';
+  }, [filters]);
+
+  const totals = useMemo(() => {
+    if (reportData) {
+      return {
+        total_income: Number(reportData.total_income ?? 0),
+        total_expense: Number(reportData.total_expense ?? 0),
+        net_profit: Number(reportData.net_profit ?? 0),
+        chart_data: reportData.chart_data ?? [],
+      };
+    }
+    const income = initialTransactions.filter(tx => tx.type === 'Income').reduce((s, tx) => s + Number(tx.amount), 0);
+    const expense = initialTransactions.filter(tx => tx.type === 'Expense').reduce((s, tx) => s + Number(tx.amount), 0);
+    return { total_income: income, total_expense: expense, net_profit: income - expense, chart_data: [] };
+  }, [reportData, initialTransactions]);
 
   // Trial Balance Logic
   const trialBalance = useMemo(() => {
     const categories: Record<string, { income: number, expense: number }> = {};
-    (reportData?.transactions || []).forEach((tx: any) => {
+    (reportData?.transactions ?? initialTransactions).forEach((tx: any) => {
       if (!categories[tx.category]) categories[tx.category] = { income: 0, expense: 0 };
-      if (tx.type === 'Income') categories[tx.category].income += tx.amount;
-      else categories[tx.category].expense += tx.amount;
+      if (tx.type === 'Income') categories[tx.category].income += Number(tx.amount);
+      else categories[tx.category].expense += Number(tx.amount);
     });
     return Object.entries(categories).map(([name, data]) => ({ name, ...data }));
-  }, [reportData]);
+  }, [reportData, initialTransactions]);
 
   return (
     <div className="space-y-6">
@@ -199,7 +266,7 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Type</label>
-                <select value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs dark:text-white">
+                <select value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white">
                   <option value="all">All Types</option>
                   <option value="income">Income</option>
                   <option value="expense">Expense</option>
@@ -207,17 +274,17 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Counter</label>
-                <select value={filters.branch} onChange={e => setFilters({...filters, branch: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs dark:text-white">
+                <select value={filters.branch} onChange={e => setFilters({...filters, branch: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white">
                   <option value="">All Counters</option>
                   {existingCounters.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Period</label>
-                <select value={filters.period} onChange={e => setFilters({...filters, period: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs dark:text-white">
+                <select value={filters.period} onChange={e => setFilters({...filters, period: e.target.value, from: '', to: ''})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white">
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
+                  <option value="monthly">Monthly (2nd → 1st)</option>
                   <option value="custom">Custom Range</option>
                 </select>
               </div>
@@ -225,11 +292,11 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
                 <>
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">From</label>
-                    <input type="date" value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs dark:text-white" />
+                    <input type="date" value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" />
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">To</label>
-                    <input type="date" value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs dark:text-white" />
+                    <input type="date" value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" />
                   </div>
                 </>
               )}
@@ -240,6 +307,14 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
               </div>
             </div>
           </div>
+
+          {periodLabel && (
+            <div className="flex items-center gap-2 -mt-2">
+              <i className="fa-solid fa-calendar-days text-emerald-500 text-xs"></i>
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{periodLabel}</span>
+              {loading && <span className="text-[10px] text-slate-400 animate-pulse">Updating...</span>}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
@@ -304,7 +379,7 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {(reportData?.transactions || []).map((tx: any) => (
+                  {(reportData?.transactions ?? initialTransactions).map((tx: any) => (
                     <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{tx.date}</td>
                       <td className="px-6 py-4">
@@ -318,7 +393,7 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
                       </td>
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{tx.branch || 'N/A'}</td>
                       <td className={`px-6 py-4 font-black ${tx.type === 'Income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {tx.type === 'Income' ? '+' : '-'} ৳ {tx.amount.toLocaleString()}
+                        {tx.type === 'Income' ? '+' : '-'} ৳ {Number(tx.amount).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
@@ -446,36 +521,36 @@ const Finance: React.FC<FinanceProps> = ({ transactions: initialTransactions, on
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Date <span className="text-rose-500">*</span></label>
-                <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-white" />
+                <input required type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Description <span className="text-rose-500">*</span></label>
-                <input required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none dark:text-white" placeholder="e.g. Fuel Refill D-001" />
+                <input required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" placeholder="e.g. Fuel Refill D-001" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Entry Type <span className="text-rose-500">*</span></label>
-                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as 'Income' | 'Expense'})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-white">
+                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as 'Income' | 'Expense'})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white">
                     <option value="Income">Income</option>
                     <option value="Expense">Expense</option>
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Amount (৳) <span className="text-rose-500">*</span></label>
-                  <input required type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-white" placeholder="0.00" />
+                  <input required type="number" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" placeholder="0.00" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Category <span className="text-rose-500">*</span></label>
-                  <input required list="finance-categories" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-white" />
+                  <input required list="finance-categories" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white" />
                   <datalist id="finance-categories">
                     {existingCategories.map(cat => <option key={cat} value={cat} />)}
                   </datalist>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase mb-1 block tracking-widest">Branch <span className="text-rose-500">*</span></label>
-                  <select value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-white">
+                  <select value={formData.branch} onChange={e => setFormData({...formData, branch: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-400 dark:hover:border-emerald-400 dark:text-white">
                     {existingCounters.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>

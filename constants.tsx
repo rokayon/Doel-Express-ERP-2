@@ -1,6 +1,40 @@
 
 import React from 'react';
-import { Trip, InventoryItem, Transaction, Staff, TicketSalesRecord, Counter, Coach } from './types';
+import { Trip, InventoryItem, Transaction, Staff, TicketSalesRecord, Counter, Coach, AppRole } from './types';
+
+export const PERMISSIONS: Record<string, AppRole[]> = {
+  dashboard:         [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ADMIN, AppRole.ACCOUNTS, AppRole.HR, AppRole.IT, AppRole.SALES, AppRole.PURCHASE, AppRole.MARKETING, AppRole.MANAGER, AppRole.COUNTER, AppRole.DRIVER, AppRole.SUPERVISOR],
+  fleetManagement:   [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.IT, AppRole.SUPERVISOR],
+  ticketSalesRecord: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MANAGER, AppRole.COUNTER],
+  counters:          [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.COUNTER],
+  inventory:         [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.PURCHASE, AppRole.ADMIN, AppRole.SUPERVISOR],
+  finance:           [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS],
+  hr:                [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.HR, AppRole.MANAGER],
+  maintenance:       [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.IT, AppRole.ADMIN, AppRole.SUPERVISOR],
+  reports:           [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MARKETING, AppRole.MANAGER, AppRole.SUPERVISOR],
+  settings:          [AppRole.SUPER_ADMIN, AppRole.IT, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ADMIN, AppRole.ACCOUNTS, AppRole.HR, AppRole.SALES, AppRole.PURCHASE, AppRole.MARKETING, AppRole.MANAGER, AppRole.COUNTER, AppRole.DRIVER, AppRole.SUPERVISOR],
+  userManagement:    [AppRole.SUPER_ADMIN, AppRole.IT],
+  vouchers:          [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.IT, AppRole.ACCOUNTS, AppRole.HR],
+  bkash:             [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MANAGER],
+  busbd:             [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MANAGER],
+};
+
+export const MODULE_LABELS: Record<string, string> = {
+  dashboard:         'Dashboard',
+  fleetManagement:   'Fleet & Schedule',
+  ticketSalesRecord: 'Sales Record',
+  counters:          'Counters',
+  inventory:         'Inventory',
+  finance:           'Finance',
+  hr:                'HR',
+  maintenance:       'Maintenance',
+  reports:           'Reports',
+  settings:          'Settings',
+  userManagement:    'Manage Users',
+  vouchers:          'Vouchers',
+  bkash:             'bKash',
+  busbd:             'Bus BD',
+};
 
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-chart-line"></i> },
@@ -13,6 +47,9 @@ export const NAV_ITEMS = [
   { id: 'maintenance', label: 'Maintenance', icon: <i className="fa-solid fa-wrench"></i> },
   { id: 'reports', label: 'Reports', icon: <i className="fa-solid fa-file-contract"></i> },
   { id: 'settings', label: 'Settings', icon: <i className="fa-solid fa-gears"></i> },
+  { id: 'vouchers', label: 'Vouchers', icon: <i className="fa-solid fa-receipt"></i> },
+  { id: 'bkash', label: 'bKash', icon: <i className="fa-solid fa-mobile-screen-button"></i> },
+  { id: 'busbd', label: 'Bus BD', icon: <i className="fa-solid fa-bus"></i> },
 ];
 
 export const MOCK_COACHES: Coach[] = [

@@ -1,75 +1,15 @@
 {
-  "transactions": [
-    {
-      "id": "TX001",
-      "date": "2024-05-20",
-      "type": "Income",
-      "category": "Ticket Sales",
-      "amount": 45000,
-      "description": "Counter Sales - Dhaka Station",
-      "branch": "Dhaka"
-    },
-    {
-      "id": "TX002",
-      "date": "2024-05-20",
-      "type": "Expense",
-      "category": "Fuel",
-      "amount": 12000,
-      "description": "Bus D-001 Refuel",
-      "branch": "Dhaka"
-    },
-    {
-      "id": "TX003",
-      "date": "2024-05-19",
-      "type": "Expense",
-      "category": "Maintenance",
-      "amount": 5500,
-      "description": "Brake repair for D-008",
-      "branch": "Rajshahi"
-    },
-    {
-      "id": "TX004",
-      "date": "2024-05-19",
-      "type": "Income",
-      "category": "Online Booking",
-      "amount": 22500,
-      "description": "App bookings - Sylhet Route",
-      "branch": "Sylhet"
-    }
-  ],
-  "ticketSales": [
-    {
-      "id": "REC001",
-      "date": "2024-05-20",
-      "regNo": "D-001",
-      "coachNo": "C-101",
-      "driverName": "Rahim Uddin",
-      "guideName": "Sumon Ahmed",
-      "departureDate": "2024-05-20",
-      "departureSeatQty": 32,
-      "departureTaka": 27200,
-      "returnDate": "2024-05-21",
-      "returnSeatQty": 28,
-      "returnTaka": 23800,
-      "totalTaka": 51000,
-      "dieselLtr": 120,
-      "dieselCost": 12000,
-      "tripCost": 5000,
-      "totalCost": 17000,
-      "netProfit": 34000,
-      "abdullahpurOffice": 1000,
-      "coxsbazarOffice": 1500,
-      "sonargaonOffice": 800,
-      "dmd": 2000
-    }
-  ],
+  "transactions": [],
+  "ticketSales": [],
+  "bkashRecords": [],
+  "busBdRecords": [],
   "staff": [
     {
       "id": "EMP001",
       "name": "Abdur Rahman",
       "role": "Senior Driver",
       "phone": "01712345678",
-      "status": "Active",
+      "status": "Expired",
       "salary": 35000,
       "joiningDate": "2023-01-10",
       "expiryDate": "2026-05-20",
@@ -81,7 +21,7 @@
       "name": "Sumon Ahmed",
       "role": "Conductor",
       "phone": "01812345678",
-      "status": "Active",
+      "status": "Expired",
       "salary": 22000,
       "joiningDate": "2023-03-15",
       "expiryDate": "2026-02-25",
@@ -93,7 +33,7 @@
       "name": "Nazrul Islam",
       "role": "Mechanic",
       "phone": "01912345678",
-      "status": "Active",
+      "status": "Expired",
       "salary": 28000,
       "joiningDate": "2022-11-20",
       "expiryDate": "2025-11-20",
@@ -105,50 +45,15 @@
       "name": "Farhana Akter",
       "role": "Counter Manager",
       "phone": "01512345678",
-      "status": "On Leave",
+      "status": "Expired",
       "salary": 25000,
       "joiningDate": "2023-06-01",
       "expiryDate": "2026-06-01",
       "nid": "5544332211",
       "email": "farhana@doel.com"
-    },
-    {
-      "id": "ZJ-912573",
-      "name": "Arif",
-      "role": "Accountant",
-      "phone": "01846229645",
-      "email": "arif@gmail.com",
-      "nid": "1251265446464",
-      "address": "",
-      "designation": "",
-      "department": "",
-      "status": "Active",
-      "salary": 100000,
-      "joiningDate": "2026-04-07",
-      "expiryDate": "2026-04-08",
-      "photo": "",
-      "nidPhoto": "",
-      "licensePhoto": "",
-      "emergencyContact": "",
-      "notes": ""
     }
   ],
-  "notifications": [
-    {
-      "id": "1",
-      "user_id": "sa-001",
-      "message": "System upgrade completed successfully.",
-      "read": false,
-      "createdAt": "2026-04-07T16:55:25.210Z"
-    },
-    {
-      "id": "2",
-      "user_id": "sa-001",
-      "message": "Staff Sumon Ahmed's contract expires in 6 days.",
-      "read": false,
-      "createdAt": "2026-04-07T16:55:25.211Z"
-    }
-  ],
+  "notifications": [],
   "coaches": [
     {
       "id": "C1",
@@ -171,19 +76,30 @@
   "counters": [
     {
       "id": "CNT-001",
-      "name": "Dhaka Main",
-      "location": "Dhaka",
-      "assignedOperatorId": "u-001",
+      "name": "Dhaka Main Counter",
+      "location": "Gabtoli, Dhaka",
+      "assignedOperatorId": "sa-001",
       "isActive": true,
-      "lastSync": "2024-05-20 10:00 AM"
+      "lastSync": "2024-05-20 09:00 AM"
     },
     {
       "id": "CNT-002",
-      "name": "Chittagong Port",
-      "location": "Chittagong",
-      "assignedOperatorId": "u-002",
+      "name": "Chittagong Station",
+      "location": "Dampara, Chittagong",
+      "assignedOperatorId": "it-001",
       "isActive": true,
-      "lastSync": "2024-05-20 09:30 AM"
+      "lastSync": "2024-05-20 10:30 AM"
+    }
+  ],
+  "users": [
+    {
+      "id": "U-29197362",
+      "username": "testuser",
+      "email": "test@doel.com",
+      "password": "pass1234",
+      "role": "DRIVER",
+      "isApproved": true,
+      "createdAt": "2026-04-11"
     }
   ]
 }

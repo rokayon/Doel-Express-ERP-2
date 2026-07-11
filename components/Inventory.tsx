@@ -101,7 +101,7 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.searchParts} 
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400"
             />
           </div>
         </div>
@@ -156,14 +156,32 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
               <button onClick={closeModal} className="text-slate-400"><i className="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div><label className="text-[10px] font-black uppercase mb-1 block">Item Name</label><input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border p-3 rounded-xl dark:text-white" /></div>
-              <div><label className="text-[10px] font-black uppercase mb-1 block">Category</label><input required list="inventory-categories" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border p-3 rounded-xl dark:text-white" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="text-[10px] font-black uppercase mb-1 block">Stock</label><input required type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} className="w-full border p-3 rounded-xl dark:bg-slate-800 dark:text-white" /></div>
-                <div><label className="text-[10px] font-black uppercase mb-1 block">Unit</label><input value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full border p-3 rounded-xl dark:bg-slate-800 dark:text-white" /></div>
+              <datalist id="inventory-categories">
+                {existingCategories.map(cat => <option key={cat} value={cat} />)}
+              </datalist>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">Item Name</label>
+                <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400" />
               </div>
-              <div className="mt-2"><label className="text-[10px] font-black uppercase mb-1 block">Min Stock (Alert Level)</label><input required type="number" value={formData.minStock} onChange={e => setFormData({...formData, minStock: e.target.value})} className="w-full border p-3 rounded-xl dark:bg-slate-800 dark:text-white" /></div>
-              <button type="submit" className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl mt-4 uppercase tracking-widest">{editingId ? 'UPDATE ITEM' : 'ADD TO INVENTORY'}</button>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">Category</label>
+                <input required list="inventory-categories" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">Stock</label>
+                  <input required type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">Unit</label>
+                  <input value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">Min Stock (Alert Level)</label>
+                <input required type="number" value={formData.minStock} onChange={e => setFormData({...formData, minStock: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:border-emerald-400 dark:hover:border-emerald-400" />
+              </div>
+              <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl mt-4 uppercase tracking-widest transition-all active:scale-[0.98]">{editingId ? 'UPDATE ITEM' : 'ADD TO INVENTORY'}</button>
             </form>
           </div>
         </div>

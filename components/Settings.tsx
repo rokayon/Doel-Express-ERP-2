@@ -38,6 +38,17 @@ const Settings: React.FC<SettingsProps> = ({
   const docInputRef = useRef<HTMLInputElement>(null);
   const brandingLogoRef = useRef<HTMLInputElement>(null);
 
+  // Name edit
+  const [nameValue, setNameValue] = useState(user?.name || '');
+  const [nameSaved, setNameSaved] = useState(false);
+
+  const handleNameSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateProfile({ name: nameValue.trim() || undefined });
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 2500);
+  };
+
   // Preferences
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [maintenanceReminders, setMaintenanceReminders] = useState(true);
@@ -76,18 +87,50 @@ const Settings: React.FC<SettingsProps> = ({
     }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const [passwordError, setPasswordError] = useState('');
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordForm.next !== passwordForm.confirm) {
+    setPasswordError('');
+    if (!passwordForm.current.trim()) {
+      setPasswordError(lang === 'en' ? 'Current password is required.' : 'বর্তমান পাসওয়ার্ড আবশ্যক।');
       setPasswordStatus('error');
       return;
     }
-    setPasswordStatus('success');
-    setTimeout(() => {
-      setShowPasswordModal(false);
-      setPasswordStatus('idle');
-      setPasswordForm({ current: '', next: '', confirm: '' });
-    }, 2000);
+    if (passwordForm.next.length < 6) {
+      setPasswordError(lang === 'en' ? 'New password must be at least 6 characters.' : 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+      setPasswordStatus('error');
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordError(lang === 'en' ? 'New passwords do not match.' : 'নতুন পাসওয়ার্ড মিলছে না।');
+      setPasswordStatus('error');
+      return;
+    }
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-user-role': userRole || '', 'x-user-id': user.id },
+        body: JSON.stringify({ currentPassword: passwordForm.current, password: passwordForm.next })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setPasswordStatus('success');
+        setPasswordError('');
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordStatus('idle');
+          setPasswordForm({ current: '', next: '', confirm: '' });
+        }, 2500);
+      } else {
+        setPasswordError(data.message || (lang === 'en' ? 'Current password is incorrect.' : 'বর্তমান পাসওয়ার্ড ভুল।'));
+        setPasswordStatus('error');
+      }
+    } catch {
+      setPasswordError(lang === 'en' ? 'Network error. Please try again.' : 'নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।');
+      setPasswordStatus('error');
+    }
   };
 
   const toggle2FA = () => {
@@ -103,13 +146,39 @@ const Settings: React.FC<SettingsProps> = ({
     setShow2FAModal(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'profilePhoto' | 'nidPhoto') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateProfile({ [field]: reader.result as string });
+  const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('no ctx')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
       };
+      img.onerror = reject;
+      img.src = url;
+    });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'profilePhoto' | 'nidPhoto') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isPhoto = field === 'profilePhoto';
+    try {
+      const compressed = await compressImage(file, isPhoto ? 800 : 1600, isPhoto ? 0.75 : 0.80);
+      onUpdateProfile({ [field]: compressed });
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => onUpdateProfile({ [field]: reader.result as string });
       reader.readAsDataURL(file);
     }
   };
@@ -158,6 +227,25 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
 
             <div className="flex-1 space-y-6">
+               {/* Name Edit */}
+               <form onSubmit={handleNameSave} className="flex items-end gap-3">
+                 <div className="flex-1">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">
+                     {lang === 'en' ? 'Display Name' : 'নাম'}
+                   </label>
+                   <input
+                     type="text"
+                     value={nameValue}
+                     onChange={e => setNameValue(e.target.value)}
+                     placeholder={lang === 'en' ? 'Your full name' : 'আপনার পুরো নাম'}
+                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 text-sm font-medium dark:text-white"
+                   />
+                 </div>
+                 <button type="submit" className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20 flex-shrink-0">
+                   {nameSaved ? <i className="fa-solid fa-check"></i> : (lang === 'en' ? 'Save' : 'সংরক্ষণ')}
+                 </button>
+               </form>
+
                <h3 className="text-lg font-black flex items-center gap-3">
                   <i className="fa-solid fa-id-card-clip text-blue-500"></i>
                   {lang === 'en' ? 'Identity Documents' : 'পরিচয় নথি'}
@@ -221,7 +309,7 @@ const Settings: React.FC<SettingsProps> = ({
                      required
                      value={tempSiteName}
                      onChange={(e) => setTempSiteName(e.target.value)}
-                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
+                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 font-bold"
                      placeholder="e.g. Doel Express"
                    />
                 </div>
@@ -296,23 +384,90 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </div>
 
-      {/* Danger Zone */}
+      {/* Danger Zone — Factory Reset */}
       {userRole === AppRole.SUPER_ADMIN && (
-        <div className="mt-12 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative shadow-sm">
+        <div className="mt-12 bg-rose-50/50 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/60 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative shadow-sm">
+          {/* Warning stripe */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-400 via-rose-600 to-rose-400 rounded-t-[2.5rem]" />
+
           <div className="max-w-2xl">
-            <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">System Reset</h4>
-            <p className="text-slate-600 dark:text-slate-400 font-medium mb-8">This will restore the ERP to its default state, including factory branding and reload all data from the server.</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center text-rose-600">
+                <i className="fa-solid fa-triangle-exclamation text-xl"></i>
+              </div>
+              <div>
+                <h4 className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                  {lang === 'en' ? 'Factory Reset' : 'ফ্যাক্টরি রিসেট'}
+                </h4>
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Danger Zone</p>
+              </div>
+            </div>
+
+            <p className="text-slate-700 dark:text-slate-300 font-semibold mb-5 text-sm leading-relaxed">
+              {lang === 'en'
+                ? 'This will permanently DELETE all data from every module. The system will return to a completely blank state.'
+                : 'এটি সকল মডিউলের সমস্ত ডেটা স্থায়ীভাবে মুছে ফেলবে। সিস্টেম সম্পূর্ণ ফাঁকা অবস্থায় ফিরে আসবে।'}
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+              {[
+                {label: 'Fleet & Schedule', icon: 'fa-bus-simple'},
+                {label: 'Sales Record', icon: 'fa-ticket'},
+                {label: 'Counters', icon: 'fa-shop'},
+                {label: 'Inventory', icon: 'fa-boxes-stacked'},
+                {label: 'Finance', icon: 'fa-money-bill-transfer'},
+                {label: 'HR / Staff', icon: 'fa-users-gear'},
+                {label: 'Maintenance', icon: 'fa-wrench'},
+                {label: 'Reports', icon: 'fa-file-contract'},
+                {label: 'Dashboard', icon: 'fa-chart-line'},
+              ].map(m => (
+                <div key={m.label} className="flex items-center gap-1.5 text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-100/60 dark:bg-rose-900/20 px-2.5 py-1.5 rounded-xl">
+                  <i className={`fa-solid ${m.icon} text-[9px]`}></i> {m.label}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 mb-8 px-4 py-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl">
+              <i className="fa-solid fa-shield-check text-blue-500"></i>
+              <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
+                {lang === 'en'
+                  ? 'Admin Control → Manage Users data is SAFE and will NOT be deleted.'
+                  : 'Admin Control → Manage Users এর সকল ব্যবহারকারী সুরক্ষিত থাকবে।'}
+              </p>
+            </div>
+
             {resetDone ? (
-              <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 w-fit animate-in zoom-in">
-                 <i className="fa-solid fa-check text-xl"></i> Successful
+              <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 w-fit">
+                <i className="fa-solid fa-check text-xl"></i>
+                {lang === 'en' ? 'Factory Reset Complete!' : 'ফ্যাক্টরি রিসেট সম্পন্ন!'}
               </div>
             ) : showConfirm ? (
-              <div className="flex gap-4">
-                <button onClick={handleReset} className="px-8 py-4 bg-rose-600 text-white font-black rounded-2xl shadow-xl uppercase tracking-widest text-xs">Confirm Reset</button>
-                <button onClick={() => setShowConfirm(false)} className="px-8 py-4 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-2xl border transition-all uppercase tracking-widest text-xs">Cancel</button>
+              <div className="space-y-4">
+                <div className="p-4 bg-rose-100 dark:bg-rose-900/30 rounded-2xl border border-rose-200 dark:border-rose-800">
+                  <p className="text-sm font-black text-rose-700 dark:text-rose-300 text-center">
+                    {lang === 'en'
+                      ? '⚠️ Are you absolutely sure? This CANNOT be undone!'
+                      : '⚠️ আপনি কি নিশ্চিত? এটি পূর্বাবস্থায় ফেরানো যাবে না!'}
+                  </p>
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={handleReset}
+                    className="flex-1 px-6 py-4 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-xl shadow-rose-600/30 uppercase tracking-widest text-xs transition-all active:scale-95">
+                    <i className="fa-solid fa-triangle-exclamation mr-2"></i>
+                    {lang === 'en' ? 'Yes, Delete Everything' : 'হ্যাঁ, সব মুছুন'}
+                  </button>
+                  <button onClick={() => setShowConfirm(false)}
+                    className="flex-1 px-6 py-4 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-2xl border border-slate-200 dark:border-slate-700 transition-all uppercase tracking-widest text-xs hover:bg-slate-50">
+                    {lang === 'en' ? 'Cancel' : 'বাতিল'}
+                  </button>
+                </div>
               </div>
             ) : (
-              <button onClick={() => setShowConfirm(true)} className="px-8 py-4 bg-white dark:bg-slate-900 text-rose-600 font-black rounded-2xl border-2 border-rose-200 hover:bg-rose-50 transition-all uppercase tracking-widest text-xs">Initiate System Reset</button>
+              <button onClick={() => setShowConfirm(true)}
+                className="px-8 py-4 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-black rounded-2xl border-2 border-rose-300 dark:border-rose-800 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-700 dark:hover:text-white hover:border-rose-600 transition-all uppercase tracking-widest text-xs shadow-sm">
+                <i className="fa-solid fa-rotate-left mr-2"></i>
+                {lang === 'en' ? 'Initiate Factory Reset' : 'ফ্যাক্টরি রিসেট শুরু করুন'}
+              </button>
             )}
           </div>
         </div>
@@ -332,19 +487,32 @@ const Settings: React.FC<SettingsProps> = ({
                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center mx-auto text-3xl">
                       <i className="fa-solid fa-check"></i>
                    </div>
-                   <p className="font-bold text-emerald-600">Password Updated!</p>
+                   <p className="font-black text-emerald-600 text-lg">{lang === 'en' ? 'Password Updated!' : 'পাসওয়ার্ড পরিবর্তন সফল!'}</p>
+                   <p className="text-sm text-slate-500">{lang === 'en' ? 'Your new password is now active. Old password can no longer be used.' : 'নতুন পাসওয়ার্ড সক্রিয় হয়েছে। পুরনো পাসওয়ার্ড আর কাজ করবে না।'}</p>
                 </div>
               ) : (
                 <>
                   <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">New Password</label>
-                    <input required type="password" value={passwordForm.next} onChange={e => setPasswordForm({...passwordForm, next: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{lang === 'en' ? 'Current Password' : 'বর্তমান পাসওয়ার্ড'} <span className="text-rose-500">*</span></label>
+                    <input required type="password" value={passwordForm.current} onChange={e => { setPasswordForm({...passwordForm, current: e.target.value}); setPasswordStatus('idle'); setPasswordError(''); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 dark:text-white" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">Confirm Password</label>
-                    <input required type="password" value={passwordForm.confirm} onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})} className={`w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-3.5 focus:ring-2 focus:ring-blue-500 outline-none ${passwordStatus === 'error' ? 'border-rose-500' : 'border-slate-200'}`} />
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{lang === 'en' ? 'New Password' : 'নতুন পাসওয়ার্ড'} <span className="text-rose-500">*</span></label>
+                    <input required type="password" value={passwordForm.next} onChange={e => { setPasswordForm({...passwordForm, next: e.target.value}); setPasswordStatus('idle'); setPasswordError(''); }} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-400 dark:text-white" />
                   </div>
-                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-xl transition-all uppercase tracking-widest text-xs mt-4">Update Security</button>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-1.5 block tracking-widest">{lang === 'en' ? 'Confirm New Password' : 'নতুন পাসওয়ার্ড নিশ্চিত করুন'} <span className="text-rose-500">*</span></label>
+                    <input required type="password" value={passwordForm.confirm} onChange={e => { setPasswordForm({...passwordForm, confirm: e.target.value}); setPasswordStatus('idle'); setPasswordError(''); }} className={`w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-3.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white ${passwordStatus === 'error' ? 'border-rose-500' : 'border-slate-200 hover:border-blue-400 dark:border-slate-700 dark:hover:border-blue-400'}`} />
+                  </div>
+                  {passwordError && (
+                    <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-xl animate-in slide-in-from-top-1">
+                      <i className="fa-solid fa-triangle-exclamation text-rose-500 text-sm flex-shrink-0"></i>
+                      <p className="text-xs font-bold text-rose-600 dark:text-rose-400">{passwordError}</p>
+                    </div>
+                  )}
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-xl transition-all uppercase tracking-widest text-xs mt-2 active:scale-[0.98]">
+                    <i className="fa-solid fa-lock mr-2"></i>{lang === 'en' ? 'Update Password' : 'পাসওয়ার্ড আপডেট করুন'}
+                  </button>
                 </>
               )}
             </form>

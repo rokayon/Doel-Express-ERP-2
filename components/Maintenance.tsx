@@ -1,35 +1,45 @@
 
 import React, { useState, useMemo } from 'react';
-import { Trip, InventoryItem } from '../types';
+import { Trip, InventoryItem, Coach } from '../types';
 import { Language, translations } from '../translations';
 
 interface MaintenanceProps {
   trips: Trip[];
   inventory: InventoryItem[];
+  coaches: Coach[];
   onUseInventory: (itemId: string, qty: number) => void;
   lang: Language;
 }
 
-const Maintenance: React.FC<MaintenanceProps> = ({ trips, inventory, onUseInventory, lang }) => {
+const Maintenance: React.FC<MaintenanceProps> = ({ trips, inventory, coaches, onUseInventory, lang }) => {
   const t = translations[lang];
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [partSource, setPartSource] = useState<'inventory' | 'third-party'>('inventory');
-  
-  const [serviceRequest, setServiceRequest] = useState({ 
-    busId: '', 
-    partId: '', 
+
+  const [serviceRequest, setServiceRequest] = useState({
+    busId: '',
+    partId: '',
     externalPartName: '',
     supplierName: '',
     quantity: '1',
-    notes: '' 
+    notes: ''
   });
 
-  const maintenanceStatus = [
-    { id: 'D-001', part: lang === 'en' ? 'Engine Oil' : 'ইঞ্জিন তেল', health: 85, status: 'Good', lastService: '2024-04-12' },
-    { id: 'D-005', part: lang === 'en' ? 'Brake Pads' : 'ব্রেক প্যাড', health: 32, status: 'Critical', lastService: '2023-11-20' },
-    { id: 'D-008', part: lang === 'en' ? 'Tires' : 'টায়ার', health: 68, status: 'Review', lastService: '2024-02-15' },
-    { id: 'D-012', part: lang === 'en' ? 'Battery' : 'ব্যাটারি', health: 94, status: 'Good', lastService: '2024-05-01' },
-  ];
+  const maintenanceStatus = useMemo(() =>
+    coaches.map(coach => {
+      const health = coach.status === 'Active' ? 100 : coach.status === 'Maintenance' ? 40 : 0;
+      const statusLabel = coach.status === 'Active' ? 'Good' : coach.status === 'Maintenance' ? 'Critical' : 'Offline';
+      return { id: coach.regNo, coachNo: coach.coachNo, health, status: statusLabel, coachId: coach.id };
+    }),
+  [coaches]);
+
+  const criticalCount = useMemo(() => maintenanceStatus.filter(m => m.status === 'Critical' || m.status === 'Offline').length, [maintenanceStatus]);
+  const reviewCount = useMemo(() => maintenanceStatus.filter(m => m.status === 'Good').length, [maintenanceStatus]);
+  const avgHealth = useMemo(() =>
+    maintenanceStatus.length > 0
+      ? Math.round(maintenanceStatus.reduce((sum, m) => sum + m.health, 0) / maintenanceStatus.length)
+      : 0,
+  [maintenanceStatus]);
 
   const selectedInventoryItem = useMemo(() => 
     inventory.find(item => item.id === serviceRequest.partId), 
@@ -72,15 +82,15 @@ const Maintenance: React.FC<MaintenanceProps> = ({ trips, inventory, onUseInvent
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 p-6 rounded-3xl">
           <p className="text-rose-600 text-xs font-black uppercase tracking-widest">{t.criticalRepairs}</p>
-          <h3 className="text-4xl font-black mt-2 text-rose-700">02</h3>
+          <h3 className="text-4xl font-black mt-2 text-rose-700">{String(criticalCount).padStart(2, '0')}</h3>
         </div>
         <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 p-6 rounded-3xl">
-          <p className="text-amber-600 text-xs font-black uppercase tracking-widest">{t.pendingReview}</p>
-          <h3 className="text-4xl font-black mt-2 text-amber-700">05</h3>
+          <p className="text-amber-600 text-xs font-black uppercase tracking-widest">{lang === 'en' ? 'Active Vehicles' : 'সক্রিয় যানবাহন'}</p>
+          <h3 className="text-4xl font-black mt-2 text-amber-700">{String(reviewCount).padStart(2, '0')}</h3>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 p-6 rounded-3xl">
           <p className="text-emerald-600 text-xs font-black uppercase tracking-widest">{t.operationalHealth}</p>
-          <h3 className="text-4xl font-black mt-2 text-emerald-700">94%</h3>
+          <h3 className="text-4xl font-black mt-2 text-emerald-700">{avgHealth}%</h3>
         </div>
       </div>
 
@@ -99,18 +109,24 @@ const Maintenance: React.FC<MaintenanceProps> = ({ trips, inventory, onUseInvent
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {maintenanceStatus.map((bus) => (
+              {maintenanceStatus.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold italic text-sm">
+                    {lang === 'en' ? 'No coaches registered. Add coaches in Fleet & Schedule.' : 'কোনো কোচ নিবন্ধিত নেই। Fleet & Schedule এ কোচ যোগ করুন।'}
+                  </td>
+                </tr>
+              ) : maintenanceStatus.map((bus) => (
                 <tr key={bus.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                  <td className="px-8 py-6 font-black">{bus.id}</td>
+                  <td className="px-8 py-6 font-black">{bus.id} <span className="text-[10px] text-slate-400 font-bold ml-1">({bus.coachNo})</span></td>
                   <td className="px-8 py-6">
-                    <p className="text-xs font-bold mb-1.5">{bus.part}</p>
+                    <p className="text-xs font-bold mb-1.5">{lang === 'en' ? 'Fleet Status' : 'অবস্থা'}</p>
                     <div className="w-32 bg-slate-100 h-2 rounded-full overflow-hidden">
-                      <div className={`h-full ${bus.health < 40 ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${bus.health}%` }}></div>
+                      <div className={`h-full ${bus.health < 40 ? 'bg-rose-500' : bus.health < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${bus.health}%` }}></div>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-xs font-black">{bus.health}%</td>
                   <td className="px-8 py-6 text-right">
-                    <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase ${bus.status === 'Good' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                    <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase ${bus.status === 'Good' ? 'bg-emerald-100 text-emerald-700' : bus.status === 'Offline' ? 'bg-slate-100 text-slate-600' : 'bg-rose-100 text-rose-700'}`}>
                       {bus.status}
                     </span>
                   </td>
@@ -140,7 +156,7 @@ const Maintenance: React.FC<MaintenanceProps> = ({ trips, inventory, onUseInvent
                     className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
                     <option value="">Select...</option>
-                    {maintenanceStatus.map(b => <option key={b.id} value={b.id}>{b.id}</option>)}
+                    {coaches.map(c => <option key={c.id} value={c.id}>{c.regNo} — {c.coachNo}</option>)}
                   </select>
                 </div>
                 

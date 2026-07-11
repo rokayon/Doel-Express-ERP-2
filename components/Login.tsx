@@ -5,7 +5,7 @@ import Logo from './Logo';
 import { User } from '../types';
 
 interface LoginProps {
-  onLogin: (user: string, password?: string) => boolean;
+  onLogin: (user: string, password?: string) => Promise<boolean>;
   onSignUp: (username: string, email: string, password?: string) => void;
   language: Language;
   onLanguageToggle: () => void;
@@ -34,6 +34,7 @@ const Login: React.FC<LoginProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const t = translations[language];
 
@@ -44,13 +45,15 @@ const Login: React.FC<LoginProps> = ({
   const firstPart = nameParts[0];
   const restPart = nameParts.slice(1).join(' ');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
     if (view === 'signIn') {
-      const success = onLogin(username, password);
+      setIsLoading(true);
+      const success = await onLogin(username, password);
+      setIsLoading(false);
       if (!success) {
         setError(t.invalidCredentials);
       }
@@ -158,7 +161,7 @@ const Login: React.FC<LoginProps> = ({
                     type="text" 
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all font-medium text-sm dark:text-white"
+                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-500 font-medium text-sm dark:text-white"
                     placeholder="e.g. admin_doel"
                   />
                 </div>
@@ -174,7 +177,7 @@ const Login: React.FC<LoginProps> = ({
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all font-medium text-sm dark:text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-500 font-medium text-sm dark:text-white"
                       placeholder="e.g. pilot@doelexpress.com"
                     />
                   </div>
@@ -202,7 +205,7 @@ const Login: React.FC<LoginProps> = ({
                       type="password" 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all font-medium text-sm dark:text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-500 font-medium text-sm dark:text-white"
                       placeholder="••••••••"
                     />
                   </div>
@@ -219,18 +222,26 @@ const Login: React.FC<LoginProps> = ({
                       type="password" 
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all font-medium text-sm dark:text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 outline-none transition-all hover:border-blue-400 dark:hover:border-blue-500 font-medium text-sm dark:text-white"
                       placeholder="••••••••"
                     />
                   </div>
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/40 transition-all active:scale-[0.98] uppercase tracking-widest text-xs mt-6"
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/40 transition-all active:scale-[0.98] uppercase tracking-widest text-xs mt-6"
               >
-                {view === 'signIn' ? t.signIn : view === 'signUp' ? t.signUp : t.resetPassword}
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <i className="fa-solid fa-circle-notch animate-spin"></i>
+                    Signing in...
+                  </span>
+                ) : (
+                  view === 'signIn' ? t.signIn : view === 'signUp' ? t.signUp : t.resetPassword
+                )}
               </button>
             </form>
 

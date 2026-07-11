@@ -32,15 +32,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   siteLogo,
   notificationCount = 0
 }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
   const t = translations[lang];
   const visibleNavItems = NAV_ITEMS.filter(item => hasPermission(item.id));
-  
+
   const nameParts = siteName.split(' ');
   const firstPart = nameParts[0];
   const restPart = nameParts.slice(1).join(' ');
 
-  const isExpanded = isHovered || isOpen;
+  const isExpanded = true;
 
   return (
     <>
@@ -51,10 +50,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      <aside 
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`fixed inset-y-0 left-0 bg-slate-900 dark:bg-slate-950 text-white z-[70] transition-all duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 border-r border-slate-800 flex flex-col shadow-2xl ${isExpanded ? 'w-[260px]' : 'lg:w-[80px] w-[260px]'}`}
+      <aside
+        className={`fixed inset-y-0 left-0 w-[260px] bg-slate-900 dark:bg-slate-950 text-white z-[70] transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 border-r border-slate-800 flex flex-col shadow-2xl`}
       >
         {/* Mobile Header with Close Button */}
         <div className={`lg:hidden flex items-center justify-between p-6 border-b border-white/5 ${!isExpanded && 'lg:justify-center'}`}>
@@ -104,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
             ))}
 
-            {(userRole === AppRole.SUPER_ADMIN || userRole === AppRole.IT) && (
+            {(userRole === AppRole.SUPER_ADMIN || userRole === AppRole.ADMIN || userRole === AppRole.IT) && (
               <div className={`pt-6 mt-6 border-t border-white/5 ${!isExpanded ? 'flex justify-center px-0' : ''}`}>
                 <button
                   onClick={() => { setActiveTab('userManagement'); setIsOpen(false); }}

@@ -1,0 +1,48 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Prevent direct access to sensitive files
+RewriteRule ^\.env\. - [F]
+
+# Rewrite /api/* to /api/index.php
+RewriteBase /
+RewriteRule ^api/ api/index.php [L,QSA]
+
+# Rewrite /api/[anything] to /api/index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php?$1 [L,QSA]
+
+# SPA routing - send everything except static files to React's index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteRule ^ index.html [QSA,L]
+
+# Add compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml
+  AddOutputFilterByType DEFLATE text/css text/javascript
+  AddOutputFilterByType DEFLATE application/xml application/xhtml+xml
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript
+</IfModule>
+
+# Cache static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/gif "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType text/javascript "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Allow large base64 image uploads via JSON
+php_value post_max_size 16M
+php_value upload_max_filesize 16M
+php_value memory_limit 128M
+</IfModule>

@@ -18,6 +18,7 @@ export enum AppRole {
 
 export interface User {
   id: string;
+  name?: string;
   username: string;
   email: string;
   password?: string;
@@ -26,6 +27,7 @@ export interface User {
   createdAt: string;
   profilePhoto?: string;
   nidPhoto?: string;
+  permissions?: string[];
 }
 
 export interface Counter {
@@ -43,6 +45,8 @@ export interface Coach {
   regNo: string;
   seats: number;
   status: 'Active' | 'Maintenance' | 'Inactive';
+  gpsDeviceId?: string;
+  type?: string;
 }
 
 export interface Trip {
@@ -94,8 +98,43 @@ export interface Staff {
   photo?: string;
   nidPhoto?: string;
   licensePhoto?: string;
+  licenseNumber?: string;
+  licenseCategory?: 'Heavy' | 'Medium' | 'Light';
   documents?: string[];
   emergencyContact?: string;
+  notes?: string;
+  hasPhoto?: boolean;
+  hasNidPhoto?: boolean;
+  hasLicensePhoto?: boolean;
+}
+
+export interface Voucher {
+  id: string;
+  name: string;
+  image?: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface BkashRecord {
+  id: string;
+  date: string;
+  merchant: 'Dhaka' | 'Cox';
+  openingBalance: number;
+  dailyReceived: number;
+  merchantToBank: number;
+  bkashCharge: number;
+  netBankReceipt: number;
+  closingBalance: number;
+  notes?: string;
+}
+
+export interface BusBdRecord {
+  id: string;
+  date: string;
+  openingAmount: number;
+  dailyAmount: number;
+  closingAmount: number;
   notes?: string;
 }
 

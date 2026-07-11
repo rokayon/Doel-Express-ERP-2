@@ -5,19 +5,28 @@ import { Language, translations } from '../translations';
 
 interface CoachRegisterProps {
   coaches: Coach[];
-  onAdd: (coach: Coach) => void;
+  onAdd: (coach: Coach) => Promise<void>;
   onUpdate: (id: string, coach: Coach) => void;
   onRemove: (id: string) => void;
   lang: Language;
   userRole?: AppRole;
+  canManage?: boolean;
 }
 
-const CoachRegister: React.FC<CoachRegisterProps> = ({ coaches, onAdd, onUpdate, onRemove, lang, userRole }) => {
+const CoachRegister: React.FC<CoachRegisterProps> = ({ coaches, onAdd, onUpdate, onRemove, lang, userRole, canManage }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const t = translations[lang];
 
-  const isAdmin = userRole === AppRole.SUPER_ADMIN || userRole === AppRole.ADMIN;
+  const isAdmin = canManage ?? (
+    userRole === AppRole.SUPER_ADMIN ||
+    userRole === AppRole.ADMIN ||
+    userRole === AppRole.MANAGING_DIRECTOR ||
+    userRole === AppRole.DIRECTOR ||
+    userRole === AppRole.MANAGER
+  );
 
   const [formData, setFormData] = useState({
     coachNo: '',
@@ -54,33 +63,43 @@ const CoachRegister: React.FC<CoachRegisterProps> = ({ coaches, onAdd, onUpdate,
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      const updatedCoach: Coach = {
-        id: editingId,
-        coachNo: formData.coachNo,
-        regNo: formData.regNo,
-        seats: parseInt(formData.seats),
-        status: coaches.find(c => c.id === editingId)?.status || 'Active'
-      };
-      onUpdate(editingId, updatedCoach);
-    } else {
-      const newCoach: Coach = {
-        id: `C${Date.now().toString().slice(-4)}`,
-        coachNo: formData.coachNo,
-        regNo: formData.regNo,
-        seats: parseInt(formData.seats),
-        status: 'Active'
-      };
-      onAdd(newCoach);
+    setSaveError('');
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedCoach: Coach = {
+          id: editingId,
+          coachNo: formData.coachNo,
+          regNo: formData.regNo,
+          seats: parseInt(formData.seats),
+          status: coaches.find(c => c.id === editingId)?.status || 'Active'
+        };
+        onUpdate(editingId, updatedCoach);
+        closeForm();
+      } else {
+        const newCoach: Coach = {
+          id: `C${Date.now().toString().slice(-6)}`,
+          coachNo: formData.coachNo,
+          regNo: formData.regNo,
+          seats: parseInt(formData.seats),
+          status: 'Active'
+        };
+        await onAdd(newCoach);
+        closeForm();
+      }
+    } catch (err: any) {
+      setSaveError(err?.message || 'Failed to save coach. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    closeForm();
   };
 
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
+    setSaveError('');
     setFormData({ coachNo: '', regNo: '', seats: '40' });
   };
 
@@ -125,22 +144,27 @@ const CoachRegister: React.FC<CoachRegisterProps> = ({ coaches, onAdd, onUpdate,
           </div>
 
           <form onSubmit={handleSubmit} className="p-10 space-y-8">
+            {saveError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-2">
+                <i className="fa-solid fa-circle-exclamation"></i> {saveError}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">{t.coachNo}</label>
-                <input required value={formData.coachNo} onChange={e => setFormData({...formData, coachNo: e.target.value})} placeholder="C-000" className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold dark:text-white" />
+                <input required value={formData.coachNo} onChange={e => setFormData({...formData, coachNo: e.target.value})} placeholder="C-000" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all hover:border-indigo-400 dark:hover:border-indigo-400 font-bold dark:text-white" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">{t.regNo}</label>
-                <input required value={formData.regNo} onChange={e => setFormData({...formData, regNo: e.target.value})} placeholder="Dhaka-Metro-..." className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold dark:text-white" />
+                <input required value={formData.regNo} onChange={e => setFormData({...formData, regNo: e.target.value})} placeholder="Dhaka-Metro-..." className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all hover:border-indigo-400 dark:hover:border-indigo-400 font-bold dark:text-white" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">{t.seats}</label>
-                <input required type="number" value={formData.seats} onChange={e => setFormData({...formData, seats: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold dark:text-white" />
+                <input required type="number" value={formData.seats} onChange={e => setFormData({...formData, seats: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all hover:border-indigo-400 dark:hover:border-indigo-400 font-bold dark:text-white" />
               </div>
             </div>
-            <button type="submit" className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl transition-all uppercase tracking-[0.3em] active:scale-[0.99] border-b-4 border-indigo-800">
-               {editingId ? 'Authorize System Update' : 'Register Authorized Unit'}
+            <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl shadow-2xl transition-all uppercase tracking-[0.3em] active:scale-[0.99] border-b-4 border-indigo-800 disabled:opacity-60">
+               {saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>Saving...</> : (editingId ? 'Authorize System Update' : 'Register Authorized Unit')}
             </button>
           </form>
         </div>
