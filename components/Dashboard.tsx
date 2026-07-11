@@ -3,7 +3,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import StatCard from './StatCard';
 import { Trip, Transaction, Staff, TicketSalesRecord } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { getSmartInsights } from '../services/gemini';
 import { Language, translations } from '../translations';
 
 interface DashboardProps {
@@ -12,13 +11,9 @@ interface DashboardProps {
   staff: Staff[];
   ticketSales: TicketSalesRecord[];
   lang: Language;
-  onRefreshAi?: () => void;
-  aiKey?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticketSales, lang, onRefreshAi, aiKey = 0 }) => {
-  const [insights, setInsights] = useState<string | null>(null);
-  const [loadingInsights, setLoadingInsights] = useState(false);
+const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticketSales, lang }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const t = translations[lang];
 
@@ -26,16 +21,6 @@ const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticke
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    const fetchInsights = async () => {
-      setLoadingInsights(true);
-      const res = await getSmartInsights({ trips, transactions, ticketSales });
-      setInsights(res || (lang === 'en' ? "Syncing fleet intelligence..." : "বহর ইন্টেলিজেন্স সিঙ্ক হচ্ছে..."));
-      setLoadingInsights(false);
-    };
-    fetchInsights();
-  }, [trips, transactions, ticketSales, aiKey, lang]);
 
   const totals = transactions.reduce((acc, tx) => {
     if (tx.type === 'Income') acc.income += tx.amount;
@@ -94,10 +79,14 @@ const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticke
 
       {/* High-Impact Stat Grid */}
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title={t.grossIncome} value={`৳${totals.income.toLocaleString()}`} trend="+12.4%" color="bg-emerald-500" icon={<i className="fa-solid fa-wallet"></i>} />
-        <StatCard title={t.activeFleet} value={trips.length} trend="+2 Units" color="bg-blue-500" icon={<i className="fa-solid fa-bus-simple"></i>} />
-        <StatCard title={t.ledgerEntries} value={transactions.length} trend="+42 New" color="bg-amber-500" icon={<i className="fa-solid fa-receipt"></i>} />
-        <StatCard title={t.fleetHealth} value="98.2%" color="bg-rose-500" icon={<i className="fa-solid fa-microchip"></i>} />
+        <StatCard title="Today's Revenue" value={`৳${(totals.income / 30).toFixed(0).toLocaleString()}`} trend="+5.2%" color="bg-emerald-500" icon={<i className="fa-solid fa-calendar-day"></i>} />
+        <StatCard title="Monthly Revenue" value={`৳${totals.income.toLocaleString()}`} trend="+12.4%" color="bg-blue-500" icon={<i className="fa-solid fa-wallet"></i>} />
+        <StatCard title="Total Staff" value={staff.length} trend="+1 New" color="bg-amber-500" icon={<i className="fa-solid fa-users"></i>} />
+        <StatCard title="Expiring Contracts" value={staff.filter(s => {
+          if (!s.expiryDate) return false;
+          const diff = new Date(s.expiryDate).getTime() - new Date().getTime();
+          return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+        }).length} trend="Alert" color="bg-rose-500" icon={<i className="fa-solid fa-clock"></i>} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,42 +136,41 @@ const Dashboard: React.FC<DashboardProps> = ({ trips, transactions, staff, ticke
                </ResponsiveContainer>
              </div>
            </div>
+
+           {/* Trip Growth Chart */}
+           <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+             <h3 className="text-lg font-black tracking-tight mb-8 dark:text-white uppercase italic">Trip Growth Analysis</h3>
+             <div className="h-64">
+               <ResponsiveContainer width="100%" height="100%">
+                 <AreaChart data={chartData}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:opacity-5" />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} />
+                   <YAxis hide />
+                   <Tooltip />
+                   <Area type="step" dataKey="revenue" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={3} />
+                 </AreaChart>
+               </ResponsiveContainer>
+             </div>
+           </div>
         </div>
 
-        {/* AI Command Center */}
+        {/* Operational Summary */}
         <div className="space-y-6">
           <div className="bg-slate-900 dark:bg-slate-950 text-white p-8 sm:p-10 rounded-[2.5rem] shadow-2xl border border-slate-800 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000"></div>
-            
-            <div className="flex items-center gap-4 mb-8 relative z-10">
-              <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-emerald-500/40 border border-emerald-400/20">
-                <i className="fa-solid fa-brain text-white text-xl"></i>
+            <div className="flex items-center gap-4 mb-6 relative z-10">
+              <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30 border border-blue-400/20">
+                <i className="fa-solid fa-chart-simple text-white text-xl"></i>
               </div>
               <div>
-                <h3 className="font-black text-base uppercase italic tracking-tight">{t.geminiAi}</h3>
-                <p className="text-[10px] text-emerald-400 font-black uppercase tracking-[0.2em]">{t.liveStrategy}</p>
+                <h3 className="font-black text-base uppercase italic tracking-tight">Operational Summary</h3>
+                <p className="text-[10px] text-blue-300 font-black uppercase tracking-[0.2em]">Live dashboard without AI dependency</p>
               </div>
             </div>
-            
-            <div className="relative z-10 min-h-[16rem]">
-              {loadingInsights ? (
-                <div className="flex flex-col items-center justify-center h-48 space-y-5">
-                  <div className="relative w-12 h-12">
-                     <div className="absolute inset-0 border-4 border-emerald-400/20 rounded-full"></div>
-                     <div className="absolute inset-0 border-4 border-emerald-400 rounded-full border-t-transparent animate-spin"></div>
-                  </div>
-                  <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.3em] animate-pulse">Running Neural Audit...</p>
-                </div>
-              ) : (
-                <div className="text-sm leading-relaxed opacity-90 font-medium text-slate-300 italic">
-                  {insights}
-                </div>
-              )}
+            <div className="relative z-10 space-y-4 text-sm text-slate-300">
+              <p>Revenue, fleet status, and counter throughput are shown using local data only.</p>
+              <p>Gemini AI has been removed, so this page no longer depends on any API key.</p>
             </div>
-
-            <button onClick={onRefreshAi} className="relative z-10 mt-10 w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all shadow-2xl shadow-emerald-900/40 active:scale-[0.98] border-b-4 border-emerald-800">
-              {t.refreshInsights}
-            </button>
           </div>
 
           {/* Quick Fleet Health Check */}

@@ -13,15 +13,16 @@ import UserManagement from './components/UserManagement';
 import Settings from './components/Settings';
 import TicketSalesRecordComponent from './components/TicketSalesRecord';
 import CoachRegister from './components/CoachRegister';
+import CounterManagement from './components/CounterManagement';
 import { MOCK_TRIPS, MOCK_FINANCE, MOCK_INVENTORY, MOCK_STAFF, MOCK_TICKET_SALES, MOCK_COUNTERS, MOCK_COACHES } from './constants';
 import { Trip, Transaction, InventoryItem, Staff, User, AppRole, TicketSalesRecord, Counter, Coach } from './types';
 import { Language, translations } from './translations';
 
 const PERMISSIONS: Record<string, AppRole[]> = {
   dashboard: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ADMIN, AppRole.ACCOUNTS, AppRole.HR, AppRole.IT, AppRole.SALES, AppRole.PURCHASE, AppRole.MARKETING, AppRole.MANAGER, AppRole.COUNTER, AppRole.DRIVER, AppRole.SUPERVISOR],
-  coachRegister: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER],
+  fleetManagement: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.IT, AppRole.SUPERVISOR],
   ticketSalesRecord: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS, AppRole.MANAGER, AppRole.COUNTER],
-  scheduling: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.ADMIN, AppRole.IT, AppRole.SUPERVISOR],
+  counters: [AppRole.SUPER_ADMIN, AppRole.ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.MANAGER, AppRole.COUNTER],
   inventory: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.PURCHASE, AppRole.ADMIN, AppRole.SUPERVISOR],
   finance: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.ACCOUNTS],
   hr: [AppRole.SUPER_ADMIN, AppRole.MANAGING_DIRECTOR, AppRole.DIRECTOR, AppRole.HR, AppRole.MANAGER],
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(savedTheme || false);
   const [language, setLanguage] = useState<Language>(savedLang || 'en');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   // Chaining State
   const [pendingSalesTrip, setPendingSalesTrip] = useState<Trip | null>(null);
@@ -73,6 +75,35 @@ const App: React.FC = () => {
     { id: 'ad-001', username: 'Admin User', email: 'admin@doelexpress.com', password: 'admin_doel_2025', role: AppRole.ADMIN, isApproved: true, createdAt: '2024-01-01' },
   ]);
 
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const headers = { 'x-user-role': currentUser?.role || '' };
+        const staffRes = await fetch('/api/staff', { headers });
+        if (staffRes.ok) {
+          const staffData = await staffRes.json();
+          setStaff(staffData);
+        }
+        
+        const financeRes = await fetch('/api/finance/report?period=monthly', { headers });
+        if (financeRes.ok) {
+          const financeData = await financeRes.json();
+          setTransactions(financeData.transactions);
+        }
+
+        const notifRes = await fetch('/api/notifications', { headers });
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          setNotifications(notifData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      }
+    };
+    if (isAuthenticated) fetchData();
+  }, [isAuthenticated, refreshKey]);
+
   useEffect(() => {
     localStorage.setItem('doel_theme', isDarkMode ? 'dark' : 'light');
     if (isDarkMode) document.documentElement.classList.add('dark');
@@ -87,6 +118,14 @@ const App: React.FC = () => {
     localStorage.setItem('doel_site_name', siteName);
     localStorage.setItem('doel_site_logo', siteLogo);
   }, [siteName, siteLogo]);
+
+  const handleResetSystem = () => {
+    if (window.confirm('Are you sure you want to reset the system? This will clear local caches and reload data.')) {
+      setRefreshKey(prev => prev + 1);
+      // In a real app, you might call a backend reset endpoint
+      console.log('System Reset Triggered');
+    }
+  };
 
   const handleLogin = (username: string, password?: string) => {
     const user = users.find(u => u.username === username);
@@ -166,7 +205,6 @@ const App: React.FC = () => {
   const updateCoach = (id: string, updates: Coach) => setCoaches(prev => prev.map(c => c.id === id ? updates : c));
   const deleteCoach = (id: string) => setCoaches(prev => prev.filter(c => c.id !== id));
 
-  // Counter Handlers
   const addCounter = (counter: Counter) => setCounters(prev => [counter, ...prev]);
   const updateCounter = (id: string, updates: Partial<Counter>) => setCounters(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   const deleteCounter = (id: string) => setCounters(prev => prev.filter(c => c.id !== id));
@@ -245,6 +283,11 @@ const App: React.FC = () => {
     setCoaches(MOCK_COACHES);
     setSiteName('Doel Express');
     setSiteLogo(DEFAULT_LOGO);
+    
+    // Clear all local storage to reset filters, themes, etc.
+    localStorage.clear();
+    // Re-trigger theme application if needed, though clear() might remove 'doel_theme'
+    // The useEffect for isDarkMode will re-save it anyway.
   };
 
   const hasPermission = (tab: string) => {
@@ -291,8 +334,15 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'dashboard': return <Dashboard trips={trips} transactions={transactions} staff={staff} ticketSales={ticketSales} lang={language} onRefreshAi={triggerAiRefresh} aiKey={refreshKey} />;
-      case 'coachRegister': return <CoachRegister coaches={coaches} onAdd={addCoach} onUpdate={updateCoach} onRemove={deleteCoach} lang={language} userRole={currentUser?.role} />;
+      case 'dashboard': return <Dashboard trips={trips} transactions={transactions} staff={staff} ticketSales={ticketSales} lang={language} />;
+      case 'fleetManagement': return (
+        <div className="space-y-12">
+          <CoachRegister coaches={coaches} onAdd={addCoach} onUpdate={updateCoach} onRemove={deleteCoach} lang={language} userRole={currentUser?.role} />
+          <div className="border-t-4 border-slate-100 dark:border-slate-800 pt-12">
+            <Scheduling trips={trips} staff={staff} coaches={coaches} onAdd={addTrip} onUpdate={updateTrip} onDelete={deleteTrip} onFinalize={finalizeTripIntoSales} lang={language} />
+          </div>
+        </div>
+      );
       case 'ticketSalesRecord': return (
         <TicketSalesRecordComponent 
           records={ticketSales} 
@@ -308,10 +358,21 @@ const App: React.FC = () => {
           onClearPrefill={() => setPendingSalesTrip(null)}
         />
       );
+      case 'counters': return (
+        <CounterManagement 
+          counters={counters} 
+          users={users} 
+          trips={trips} 
+          currentUser={currentUser} 
+          onAddCounter={addCounter} 
+          onUpdateCounter={updateCounter} 
+          onAddSalesRecord={addTicketRecord}
+          lang={language} 
+        />
+      );
       case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} lang={language} />;
-      case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} />;
-      case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} />;
-      case 'scheduling': return <Scheduling trips={trips} staff={staff} coaches={coaches} onAdd={addTrip} onUpdate={updateTrip} onDelete={deleteTrip} onFinalize={finalizeTripIntoSales} lang={language} />;
+      case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} userRole={currentUser?.role} />;
+      case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} userRole={currentUser?.role} />;
       case 'maintenance': return <Maintenance trips={trips} inventory={inventory} onUseInventory={adjustInventoryStock} lang={language} />;
       case 'reports': return <Reports trips={trips} transactions={transactions} staff={staff} lang={language} />;
       case 'userManagement': return <UserManagement users={users} onUpdateUser={updateUserInfo} lang={language} />;
@@ -344,9 +405,10 @@ const App: React.FC = () => {
         hasPermission={hasPermission}
         siteName={siteName}
         siteLogo={siteLogo}
+        notificationCount={notifications.filter(n => !n.read).length}
       />
 
-      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-x-hidden">
+      <main className="flex-1 lg:ml-20 flex flex-col min-h-screen overflow-x-hidden transition-all duration-300">
         <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all">

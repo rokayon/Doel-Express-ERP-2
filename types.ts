@@ -43,8 +43,6 @@ export interface Coach {
   regNo: string;
   seats: number;
   status: 'Active' | 'Maintenance' | 'Inactive';
-  // Optional GPS Device ID for real-time tracking
-  gpsDeviceId?: string;
 }
 
 export interface Trip {
@@ -84,11 +82,21 @@ export interface Staff {
   name: string;
   role: string;
   phone: string;
-  status: 'Active' | 'On Leave' | 'Inactive';
+  email?: string;
+  nid?: string;
+  address?: string;
+  designation?: string;
+  department?: string;
+  status: 'Active' | 'On Leave' | 'Inactive' | 'Expired' | 'Resigned' | 'Terminated';
   salary: number;
+  joiningDate?: string;
+  expiryDate?: string;
   photo?: string;
   nidPhoto?: string;
   licensePhoto?: string;
+  documents?: string[];
+  emergencyContact?: string;
+  notes?: string;
 }
 
 export interface TicketSalesRecord {

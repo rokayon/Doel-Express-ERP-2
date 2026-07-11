@@ -240,7 +240,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                     dataKey="label" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800, textTransform: 'uppercase'}} 
                     dy={10}
                   />
                   <YAxis 
@@ -253,7 +253,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                     contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', padding: '16px' }}
                     labelStyle={{ color: '#94a3b8', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.1em' }}
                     itemStyle={{ color: '#fff', fontWeight: 900, fontSize: '16px' }}
-                    formatter={(value: any) => [`৳${(value || 0).toLocaleString()}`, 'NET REVENUE']}
+                    formatter={(value: number) => [`৳${value.toLocaleString()}`, 'NET REVENUE']}
                   />
                   <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={5} fillOpacity={1} fill="url(#colorSalesPremium)" animationDuration={1500} />
                </AreaChart>
@@ -311,27 +311,95 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
       </div>
 
       {/* Action Bar */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          <input 
-            type="text" 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
-            placeholder="Search by Coach, Driver, or Reg No..." 
-            className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm transition-all font-medium text-sm dark:text-white" 
-          />
-        </div>
-        <div className="flex gap-2">
-           <button onClick={() => setShowFilters(!showFilters)} className={`px-6 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${showFilters ? 'bg-blue-600 border-blue-600 text-white shadow-xl' : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50'}`}>
-              <i className="fa-solid fa-filter"></i> {showFilters ? 'Apply' : 'Filters'}
-           </button>
-           {canEditRecord && (
-             <button onClick={() => setShowForm(!showForm)} className="px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2">
-                <i className={`fa-solid ${showForm ? 'fa-xmark' : 'fa-plus'}`}></i> {showForm ? 'Cancel' : 'Add Record'}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <i className="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input 
+              type="text" 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              placeholder="Search by Coach, Driver, or Reg No..." 
+              className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm transition-all font-medium text-sm dark:text-white" 
+            />
+          </div>
+          <div className="flex gap-2">
+             <button 
+               onClick={() => window.open(`/api/sales/export?role=${userRole || ''}`, '_blank')}
+               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-bold text-xs uppercase tracking-widest"
+             >
+                <i className="fa-solid fa-file-excel mr-2"></i> Export Excel
              </button>
-           )}
+             <button onClick={() => setShowFilters(!showFilters)} className={`px-6 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 ${showFilters ? 'bg-blue-600 border-blue-600 text-white shadow-xl' : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50'}`}>
+                <i className="fa-solid fa-filter"></i> {showFilters ? 'Apply' : 'Filters'}
+             </button>
+             {canEditRecord && (
+               <button onClick={() => setShowForm(!showForm)} className="px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2">
+                  <i className={`fa-solid ${showForm ? 'fa-xmark' : 'fa-plus'}`}></i> {showForm ? 'Cancel' : 'Add Record'}
+               </button>
+             )}
+          </div>
         </div>
+
+        {showFilters && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in slide-in-from-top-4 duration-300 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
+                <input type="date" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 font-bold dark:text-white" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">End Date</label>
+                <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3 font-bold dark:text-white" />
+              </div>
+              <div className="sm:col-span-2 flex items-end gap-2">
+                <button 
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setFilterStartDate(today);
+                    setFilterEndDate(today);
+                  }}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
+                >
+                  Daily
+                </button>
+                <button 
+                  onClick={() => {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(end.getDate() - 7);
+                    setFilterStartDate(start.toISOString().split('T')[0]);
+                    setFilterEndDate(end.toISOString().split('T')[0]);
+                  }}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
+                >
+                  Weekly
+                </button>
+                <button 
+                  onClick={() => {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(end.getDate() - 30);
+                    setFilterStartDate(start.toISOString().split('T')[0]);
+                    setFilterEndDate(end.toISOString().split('T')[0]);
+                  }}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
+                >
+                  Monthly
+                </button>
+                <button 
+                  onClick={() => {
+                    setFilterStartDate('');
+                    setFilterEndDate('');
+                  }}
+                  className="px-4 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Record Form */}
@@ -385,17 +453,17 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                 <div className="p-8 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-[2rem] border-2 border-emerald-100 dark:border-emerald-800/30 space-y-6">
                   <p className="text-[11px] font-black text-emerald-600 uppercase italic">Departure Leg</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2 space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Departure Date</label><input required type="date" value={formData.departureDate} onChange={e => setFormData({...formData, departureDate: e.target.value})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
-                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Seats Sold</label><input required type="number" value={formData.departureSeatQty} onChange={e => setFormData({...formData, departureSeatQty: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
-                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Taka (Revenue)</label><input required type="number" value={formData.departureTaka} onChange={e => setFormData({...formData, departureTaka: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-black text-emerald-600" /></div>
+                    <div className="sm:col-span-2 space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Departure Date <span className="text-rose-500">*</span></label><input required type="date" value={formData.departureDate} onChange={e => setFormData({...formData, departureDate: e.target.value})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
+                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Seats Sold <span className="text-rose-500">*</span></label><input required type="number" value={formData.departureSeatQty} onChange={e => setFormData({...formData, departureSeatQty: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
+                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Taka (Revenue) <span className="text-rose-500">*</span></label><input required type="number" value={formData.departureTaka} onChange={e => setFormData({...formData, departureTaka: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-black text-emerald-600" /></div>
                   </div>
                 </div>
                 <div className="p-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2rem] border-2 border-blue-100 dark:border-blue-800/30 space-y-6">
                   <p className="text-[11px] font-black text-blue-600 uppercase italic">Return Leg</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2 space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Return Date</label><input required type="date" value={formData.returnDate} onChange={e => setFormData({...formData, returnDate: e.target.value})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
-                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Seats Sold</label><input required type="number" value={formData.returnSeatQty} onChange={e => setFormData({...formData, returnSeatQty: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
-                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Taka (Revenue)</label><input required type="number" value={formData.returnTaka} onChange={e => setFormData({...formData, returnTaka: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-black text-blue-600" /></div>
+                    <div className="sm:col-span-2 space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Return Date <span className="text-rose-500">*</span></label><input required type="date" value={formData.returnDate} onChange={e => setFormData({...formData, returnDate: e.target.value})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
+                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Seats Sold <span className="text-rose-500">*</span></label><input required type="number" value={formData.returnSeatQty} onChange={e => setFormData({...formData, returnSeatQty: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-bold dark:text-white" /></div>
+                    <div className="space-y-1.5"><label className="text-[9px] font-black text-slate-500 uppercase">Taka (Revenue) <span className="text-rose-500">*</span></label><input required type="number" value={formData.returnTaka} onChange={e => setFormData({...formData, returnTaka: Number(e.target.value)})} className="w-full border-none bg-white dark:bg-slate-900 p-3 rounded-xl font-black text-blue-600" /></div>
                   </div>
                 </div>
             </div>

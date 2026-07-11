@@ -4,9 +4,9 @@ import { Trip, InventoryItem, Transaction, Staff, TicketSalesRecord, Counter, Co
 
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-chart-line"></i> },
-  { id: 'coachRegister', label: 'Coach Register', icon: <i className="fa-solid fa-bus"></i> },
+  { id: 'fleetManagement', label: 'Fleet & Schedule', icon: <i className="fa-solid fa-bus-simple"></i> },
   { id: 'ticketSalesRecord', label: 'Sales Record', icon: <i className="fa-solid fa-ticket"></i> },
-  { id: 'scheduling', label: 'Scheduling', icon: <i className="fa-solid fa-calendar-days"></i> },
+  { id: 'counters', label: 'Counters', icon: <i className="fa-solid fa-shop"></i> },
   { id: 'inventory', label: 'Inventory', icon: <i className="fa-solid fa-boxes-stacked"></i> },
   { id: 'finance', label: 'Finance', icon: <i className="fa-solid fa-money-bill-transfer"></i> },
   { id: 'hr', label: 'HR', icon: <i className="fa-solid fa-users-gear"></i> },

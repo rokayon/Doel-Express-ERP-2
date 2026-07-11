@@ -25,6 +25,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
   lang 
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [editingCounter, setEditingCounter] = useState<Counter | null>(null);
   const [showSalesModal, setShowSalesModal] = useState(false);
   const [activeCounterForSales, setActiveCounterForSales] = useState<Counter | null>(null);
   const t = translations[lang];
@@ -47,16 +48,35 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
 
   const handleAddCounterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newCounter: Counter = {
-      id: `CNT-${Date.now().toString().slice(-4)}`,
-      name: formData.name,
-      location: formData.location,
-      assignedOperatorId: formData.assignedOperatorId || undefined,
-      isActive: true
-    };
-    onAddCounter(newCounter);
+    if (editingCounter) {
+      onUpdateCounter(editingCounter.id, {
+        name: formData.name,
+        location: formData.location,
+        assignedOperatorId: formData.assignedOperatorId || undefined
+      });
+    } else {
+      const newCounter: Counter = {
+        id: `CNT-${Date.now().toString().slice(-4)}`,
+        name: formData.name,
+        location: formData.location,
+        assignedOperatorId: formData.assignedOperatorId || undefined,
+        isActive: true
+      };
+      onAddCounter(newCounter);
+    }
     setShowModal(false);
+    setEditingCounter(null);
     setFormData({ name: '', location: '', assignedOperatorId: '' });
+  };
+
+  const handleEditCounter = (counter: Counter) => {
+    setEditingCounter(counter);
+    setFormData({
+      name: counter.name,
+      location: counter.location,
+      assignedOperatorId: counter.assignedOperatorId || ''
+    });
+    setShowModal(true);
   };
 
   const handleSalesSubmit = (e: React.FormEvent) => {
@@ -125,7 +145,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black tracking-tight">{t.counterManagement}</h2>
+          <h2 className="text-2xl font-black tracking-tight">{t.counters}</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Manage station access and assign operations</p>
         </div>
         {isAdmin && (
@@ -217,6 +237,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                       {counter.isActive ? 'Disable' : 'Enable'}
                     </button>
                     <button 
+                      onClick={() => handleEditCounter(counter)}
                       className="w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-blue-600 hover:text-white rounded-xl flex items-center justify-center transition-all"
                     >
                       <i className="fa-solid fa-pen-to-square"></i>
@@ -229,12 +250,55 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
         )}
       </div>
 
+      {/* Sales Record Summary for Counters */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center">
+           <h3 className="text-lg font-black uppercase italic tracking-tighter">Counter Sales Performance</h3>
+           <div className="flex gap-2">
+              <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest">Live Feed</span>
+           </div>
+        </div>
+        <div className="overflow-x-auto">
+           <table className="w-full text-left">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                 <tr>
+                    <th className="px-8 py-5">Counter Name</th>
+                    <th className="px-8 py-5">Operator</th>
+                    <th className="px-8 py-5">Location</th>
+                    <th className="px-8 py-5 text-right">Status</th>
+                 </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                 {counters.map(counter => {
+                    const operator = users.find(u => u.id === counter.assignedOperatorId);
+                    return (
+                       <tr key={counter.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-8 py-5 font-bold text-slate-700 dark:text-slate-300">{counter.name}</td>
+                          <td className="px-8 py-5 text-sm font-medium">{operator?.username || 'Unassigned'}</td>
+                          <td className="px-8 py-5 text-xs text-slate-500">{counter.location}</td>
+                          <td className="px-8 py-5 text-right">
+                             <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest ${counter.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                {counter.isActive ? 'Online' : 'Offline'}
+                             </span>
+                          </td>
+                       </tr>
+                    );
+                 })}
+              </tbody>
+           </table>
+        </div>
+      </div>
+
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="text-xl font-black uppercase tracking-tight">{t.registerCounter}</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400"><i className="fa-solid fa-xmark text-2xl"></i></button>
+              <h3 className="text-xl font-black uppercase tracking-tight">{editingCounter ? 'Edit Counter' : t.registerCounter}</h3>
+              <button onClick={() => {
+                setShowModal(false);
+                setEditingCounter(null);
+                setFormData({ name: '', location: '', assignedOperatorId: '' });
+              }} className="text-slate-400"><i className="fa-solid fa-xmark text-2xl"></i></button>
             </div>
             <form onSubmit={handleAddCounterSubmit} className="p-10 space-y-6">
               <div>
@@ -271,7 +335,7 @@ const CounterManagement: React.FC<CounterManagementProps> = ({
                 </select>
               </div>
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[1.5rem] shadow-xl transition-all uppercase tracking-widest text-xs">
-                Deploy Station
+                {editingCounter ? 'Update Counter' : 'Deploy Station'}
               </button>
             </form>
           </div>

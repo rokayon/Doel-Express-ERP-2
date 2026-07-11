@@ -9,9 +9,10 @@ interface HRProps {
   onUpdate: (id: string, member: Staff) => void;
   onDelete: (id: string) => void;
   lang: Language;
+  userRole?: string;
 }
 
-const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
+const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang, userRole }) => {
   const [showModal, setShowModal] = useState(false);
   const [viewingStaff, setViewingStaff] = useState<Staff | null>(null);
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
@@ -24,10 +25,20 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
     name: '', 
     role: 'Driver', 
     phone: '', 
+    email: '',
+    nid: '',
+    address: '',
+    designation: '',
+    department: '',
     salary: '',
+    joiningDate: new Date().toISOString().split('T')[0],
+    expiryDate: '',
     photo: '',
     nidPhoto: '',
-    licensePhoto: ''
+    licensePhoto: '',
+    emergencyContact: '',
+    notes: '',
+    status: 'Active' as any
   });
 
   const isDriverRole = formData.role.toLowerCase().includes('driver');
@@ -53,10 +64,20 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
       name: member.name,
       role: member.role,
       phone: member.phone,
+      email: member.email || '',
+      nid: member.nid || '',
+      address: member.address || '',
+      designation: member.designation || '',
+      department: member.department || '',
       salary: member.salary.toString(),
+      joiningDate: member.joiningDate || '',
+      expiryDate: member.expiryDate || '',
       photo: member.photo || '',
       nidPhoto: member.nidPhoto || '',
-      licensePhoto: member.licensePhoto || ''
+      licensePhoto: member.licensePhoto || '',
+      emergencyContact: member.emergencyContact || '',
+      notes: member.notes || '',
+      status: member.status
     });
     setShowModal(true);
   };
@@ -67,24 +88,69 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic frontend validation
+    if (!formData.name || !formData.nid || !formData.phone) {
+      alert(lang === 'en' ? 'Name, NID and Phone are required!' : 'নাম, এনআইডি এবং ফোন নম্বর আবশ্যক!');
+      return;
+    }
+
+    // Duplicate check (simulated on frontend for immediate feedback)
+    const isDuplicate = staff.some(s => s.id !== editingStaffId && (s.nid === formData.nid || (formData.email && s.email === formData.email)));
+    if (isDuplicate) {
+      alert(lang === 'en' ? 'A staff member with this NID or Email already exists!' : 'এই এনআইডি বা ইমেল সহ একজন স্টাফ সদস্য ইতিমধ্যে বিদ্যমান!');
+      return;
+    }
+
     const staffData: Staff = {
-      id: editingStaffId || `EMP-${Date.now().toString().slice(-4)}`,
+      id: editingStaffId || `ZJ-${Math.floor(Math.random() * 1000000)}`,
       name: formData.name,
       role: formData.role || 'Staff',
       phone: formData.phone,
-      status: 'Active',
+      email: formData.email,
+      nid: formData.nid,
+      address: formData.address,
+      designation: formData.designation,
+      department: formData.department,
+      status: formData.status,
       salary: parseFloat(formData.salary),
+      joiningDate: formData.joiningDate,
+      expiryDate: formData.expiryDate,
       photo: formData.photo,
       nidPhoto: formData.nidPhoto,
-      licensePhoto: formData.licensePhoto
+      licensePhoto: formData.licensePhoto,
+      emergencyContact: formData.emergencyContact,
+      notes: formData.notes
     };
 
-    if (editingStaffId) {
-      onUpdate(editingStaffId, staffData);
-    } else {
-      onAdd(staffData);
+    try {
+      const method = editingStaffId ? 'PUT' : 'POST';
+      const url = editingStaffId ? `/api/staff/${editingStaffId}` : '/api/staff';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-role': userRole || ''
+        },
+        body: JSON.stringify(staffData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to save staff member');
+        return;
+      }
+
+      if (editingStaffId) {
+        onUpdate(editingStaffId, staffData);
+      } else {
+        onAdd(staffData);
+      }
+    } catch (error) {
+      console.error('Failed to save staff:', error);
     }
 
     setShowModal(false);
@@ -93,7 +159,11 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
 
   const resetForm = () => {
     setEditingStaffId(null);
-    setFormData({ name: '', role: 'Driver', phone: '', salary: '', photo: '', nidPhoto: '', licensePhoto: '' });
+    setFormData({ 
+      name: '', role: 'Driver', phone: '', email: '', nid: '', address: '', 
+      designation: '', department: '', salary: '', joiningDate: new Date().toISOString().split('T')[0], 
+      expiryDate: '', photo: '', nidPhoto: '', licensePhoto: '', emergencyContact: '', notes: '', status: 'Active' 
+    });
   };
 
   return (
@@ -156,6 +226,15 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
                       <div title="NID/License" className={`w-6 h-6 rounded flex items-center justify-center text-[10px] ${member.nidPhoto || member.licensePhoto ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
                         <i className="fa-solid fa-id-card"></i>
                       </div>
+                      {member.expiryDate && (new Date(member.expiryDate).getTime() - new Date().getTime() < 7 * 24 * 60 * 60 * 1000) && (
+                        <button 
+                          onClick={() => alert(`SMS Reminder sent to ${member.name} (${member.phone})`)}
+                          className="w-6 h-6 rounded bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] hover:bg-amber-200 transition-all"
+                          title="Send Expiry Reminder SMS"
+                        >
+                          <i className="fa-solid fa-comment-sms"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -174,9 +253,9 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
 
       {/* Digital Enrollment Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl min-h-screen sm:min-h-0 sm:rounded-[2.5rem] shadow-2xl flex flex-col relative">
-            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-900 z-10">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl max-h-[95vh] sm:rounded-[2.5rem] shadow-2xl flex flex-col relative overflow-hidden">
+            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-10">
               <div>
                 <h3 className="text-xl font-black uppercase tracking-tight dark:text-white">
                   {editingStaffId ? 'Update Personnel File' : 'Digital Staff Enrollment'}
@@ -188,16 +267,17 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-10 flex-1">
-              {/* Basic Info Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto">
+              <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-10">
+                {/* Basic Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Staff Full Name <span className="text-rose-500">*</span></label>
+                      <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white" placeholder="Legal Name" />
+                    </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Staff Full Name</label>
-                    <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white" placeholder="Legal Name" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Assigned Designation</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Assigned Designation <span className="text-rose-500">*</span></label>
                     <select required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 text-base font-bold dark:text-white">
                       <option value="Driver">Driver (Requires License)</option>
                       <option value="Guide">Guide</option>
@@ -209,13 +289,44 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Phone No</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Phone No <span className="text-rose-500">*</span></label>
                         <input required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" />
                      </div>
                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Salary (৳)</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Email Address</label>
+                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" placeholder="email@example.com" />
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">NID Number <span className="text-rose-500">*</span></label>
+                        <input required value={formData.nid} onChange={e => setFormData({...formData, nid: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" placeholder="National ID" />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Salary (৳) <span className="text-rose-500">*</span></label>
                         <input required type="number" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-black text-blue-600" />
                      </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Joining Date</label>
+                        <input type="date" value={formData.joiningDate} onChange={e => setFormData({...formData, joiningDate: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Expiry Date</label>
+                        <input type="date" value={formData.expiryDate} onChange={e => setFormData({...formData, expiryDate: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 font-bold dark:text-white" />
+                     </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Current Status</label>
+                    <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-2xl p-4 text-base font-bold dark:text-white">
+                      <option value="Active">Active</option>
+                      <option value="On Leave">On Leave</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Expired">Expired</option>
+                      <option value="Resigned">Resigned</option>
+                      <option value="Terminated">Terminated</option>
+                    </select>
                   </div>
                 </div>
 
@@ -270,7 +381,8 @@ const HR: React.FC<HRProps> = ({ staff, onAdd, onUpdate, onDelete, lang }) => {
                   {editingStaffId ? 'Verify & Update Records' : 'Authorize & Enroll Personnel'}
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}

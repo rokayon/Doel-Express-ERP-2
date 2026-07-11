@@ -300,8 +300,8 @@ const Settings: React.FC<SettingsProps> = ({
       {userRole === AppRole.SUPER_ADMIN && (
         <div className="mt-12 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative shadow-sm">
           <div className="max-w-2xl">
-            <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">Data Reset</h4>
-            <p className="text-slate-600 dark:text-slate-400 font-medium mb-8">This will restore the ERP to its default state, including factory branding.</p>
+            <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">System Reset</h4>
+            <p className="text-slate-600 dark:text-slate-400 font-medium mb-8">This will restore the ERP to its default state, including factory branding and reload all data from the server.</p>
             {resetDone ? (
               <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 w-fit animate-in zoom-in">
                  <i className="fa-solid fa-check text-xl"></i> Successful
@@ -312,7 +312,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <button onClick={() => setShowConfirm(false)} className="px-8 py-4 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-2xl border transition-all uppercase tracking-widest text-xs">Cancel</button>
               </div>
             ) : (
-              <button onClick={() => setShowConfirm(true)} className="px-8 py-4 bg-white dark:bg-slate-900 text-rose-600 font-black rounded-2xl border-2 border-rose-200 hover:bg-rose-50 transition-all uppercase tracking-widest text-xs">Initiate Factory Reset</button>
+              <button onClick={() => setShowConfirm(true)} className="px-8 py-4 bg-white dark:bg-slate-900 text-rose-600 font-black rounded-2xl border-2 border-rose-200 hover:bg-rose-50 transition-all uppercase tracking-widest text-xs">Initiate System Reset</button>
             )}
           </div>
         </div>
