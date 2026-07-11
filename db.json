@@ -1,7 +1,30 @@
 {
   "transactions": [],
   "ticketSales": [],
-  "bkashRecords": [],
+  "bkashRecords": [
+    {
+      "id": "BKS-95841113",
+      "date": "2026-07-11",
+      "merchant": "Cox",
+      "openingBalance": 1378742,
+      "dailyReceived": 43890,
+      "merchantToBank": 450,
+      "bkashCharge": 5.17,
+      "netBankReceipt": 444.83,
+      "closingBalance": 1422182
+    },
+    {
+      "id": "BKS-95841112",
+      "date": "2026-07-11",
+      "merchant": "Dhaka",
+      "openingBalance": 15000,
+      "dailyReceived": 4545,
+      "merchantToBank": 4354.01,
+      "bkashCharge": 50.07,
+      "netBankReceipt": 4303.94,
+      "closingBalance": 15190.99
+    }
+  ],
   "busBdRecords": [],
   "staff": [
     {

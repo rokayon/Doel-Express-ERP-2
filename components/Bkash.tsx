@@ -503,6 +503,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                       <input type="number" min="0" step="0.01"
                         value={formData[key as keyof typeof formData]}
                         onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+                        onWheel={e => e.currentTarget.blur()}
                         className={inputCls} placeholder="0" />
                     </div>
                   ))}
@@ -603,6 +604,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                         <input type="number" min="0" step="0.01"
                           value={dhakaForm[key as keyof typeof dhakaForm]}
                           onChange={e => setDhakaForm({ ...dhakaForm, [key]: e.target.value })}
+                          onWheel={e => e.currentTarget.blur()}
                           className={blueCls} placeholder="0" />
                       </div>
                     ))}
@@ -649,6 +651,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                         <input type="number" min="0" step="0.01"
                           value={coxForm[key as keyof typeof coxForm]}
                           onChange={e => setCoxForm({ ...coxForm, [key]: e.target.value })}
+                          onWheel={e => e.currentTarget.blur()}
                           className={tealCls} placeholder="0" />
                       </div>
                     ))}
