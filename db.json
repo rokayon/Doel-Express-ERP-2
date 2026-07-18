@@ -3,6 +3,85 @@
   "ticketSales": [],
   "bkashRecords": [
     {
+      "id": "BKS-88560393",
+      "date": "2026-07-22",
+      "merchant": "Cox",
+      "openingBalance": -800,
+      "dailyReceived": 0,
+      "merchantToBank": 278,
+      "bkashCharge": 3.2,
+      "netBankReceipt": 274.8,
+      "closingBalance": -1078
+    },
+    {
+      "id": "BKS-88560392",
+      "date": "2026-07-22",
+      "merchant": "Dhaka",
+      "openingBalance": -2200,
+      "dailyReceived": 0,
+      "merchantToBank": 1500,
+      "bkashCharge": 17.25,
+      "netBankReceipt": 1482.75,
+      "closingBalance": -3700
+    },
+    {
+      "id": "BKS-88537165",
+      "date": "2026-07-20",
+      "merchant": "Cox",
+      "openingBalance": -400,
+      "dailyReceived": 0,
+      "merchantToBank": 400,
+      "bkashCharge": 4.6,
+      "netBankReceipt": 395.4,
+      "closingBalance": -800
+    },
+    {
+      "id": "BKS-88537164",
+      "date": "2026-07-20",
+      "merchant": "Dhaka",
+      "openingBalance": -600,
+      "dailyReceived": 0,
+      "merchantToBank": 1600,
+      "bkashCharge": 18.4,
+      "netBankReceipt": 1581.6,
+      "closingBalance": -2200
+    },
+    {
+      "id": "BKS-88510123",
+      "date": "2026-07-19",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 0,
+      "merchantToBank": 400,
+      "bkashCharge": 4.6,
+      "netBankReceipt": 395.4,
+      "closingBalance": -400
+    },
+    {
+      "id": "BKS-88484488",
+      "date": "2026-07-18",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 0,
+      "merchantToBank": 400,
+      "bkashCharge": 4.6,
+      "netBankReceipt": 395.4,
+      "closingBalance": -400,
+      "notes": "Test it"
+    },
+    {
+      "id": "BKS-88484487",
+      "date": "2026-07-18",
+      "merchant": "Dhaka",
+      "openingBalance": 0,
+      "dailyReceived": 0,
+      "merchantToBank": 600,
+      "bkashCharge": 6.9,
+      "netBankReceipt": 593.1,
+      "closingBalance": -600,
+      "notes": "Test it"
+    },
+    {
       "id": "BKS-95841113",
       "date": "2026-07-11",
       "merchant": "Cox",
