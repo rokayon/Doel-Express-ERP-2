@@ -3,6 +3,116 @@
   "ticketSales": [],
   "bkashRecords": [
     {
+      "id": "BKS-94621522",
+      "date": "2026-07-19",
+      "merchant": "Cox",
+      "openingBalance": 4.6,
+      "dailyReceived": 400,
+      "merchantToBank": 1400,
+      "bkashCharge": 16.1,
+      "netBankReceipt": 1383.9,
+      "closingBalance": -979.3
+    },
+    {
+      "id": "BKS-94621521",
+      "date": "2026-07-19",
+      "merchant": "Dhaka",
+      "openingBalance": 6.9,
+      "dailyReceived": 600,
+      "merchantToBank": 2100,
+      "bkashCharge": 24.15,
+      "netBankReceipt": 2075.85,
+      "closingBalance": -1468.95
+    },
+    {
+      "id": "BKS-94574123",
+      "date": "2026-07-18",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 400,
+      "merchantToBank": 400,
+      "bkashCharge": 4.6,
+      "netBankReceipt": 395.4,
+      "closingBalance": 4.6
+    },
+    {
+      "id": "BKS-94574122",
+      "date": "2026-07-18",
+      "merchant": "Dhaka",
+      "openingBalance": 0,
+      "dailyReceived": 600,
+      "merchantToBank": 600,
+      "bkashCharge": 6.9,
+      "netBankReceipt": 593.1,
+      "closingBalance": 6.9
+    },
+    {
+      "id": "BKS-94145841",
+      "date": "2026-07-18",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 400,
+      "merchantToBank": 800,
+      "bkashCharge": 9.2,
+      "netBankReceipt": 790.8,
+      "closingBalance": -390.8
+    },
+    {
+      "id": "BKS-94145840",
+      "date": "2026-07-18",
+      "merchant": "Dhaka",
+      "openingBalance": 0,
+      "dailyReceived": 600,
+      "merchantToBank": 1200,
+      "bkashCharge": 13.8,
+      "netBankReceipt": 1186.2,
+      "closingBalance": -586.2
+    },
+    {
+      "id": "BKS-93848285",
+      "date": "2026-07-18",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 3500,
+      "merchantToBank": 4900,
+      "bkashCharge": 56.35,
+      "netBankReceipt": 4843.65,
+      "closingBalance": -1343.65
+    },
+    {
+      "id": "BKS-93848284",
+      "date": "2026-07-18",
+      "merchant": "Dhaka",
+      "openingBalance": 0,
+      "dailyReceived": 1500,
+      "merchantToBank": 2100,
+      "bkashCharge": 24.15,
+      "netBankReceipt": 2075.85,
+      "closingBalance": -575.85
+    },
+    {
+      "id": "BKS-93815390",
+      "date": "2026-07-18",
+      "merchant": "Cox",
+      "openingBalance": 0,
+      "dailyReceived": 400,
+      "merchantToBank": 400,
+      "bkashCharge": 4.6,
+      "netBankReceipt": 395.4,
+      "closingBalance": 4.6
+    },
+    {
+      "id": "BKS-93815389",
+      "date": "2026-07-18",
+      "merchant": "Dhaka",
+      "openingBalance": 0,
+      "dailyReceived": 600,
+      "merchantToBank": 600,
+      "bkashCharge": 6.9,
+      "netBankReceipt": 593.1,
+      "closingBalance": 6.9
+    },
+    {
       "id": "BKS-88560393",
       "date": "2026-07-22",
       "merchant": "Cox",
@@ -202,6 +312,62 @@
       "role": "DRIVER",
       "isApproved": true,
       "createdAt": "2026-04-11"
+    }
+  ],
+  "inventory": [
+    {
+      "id": "INV-8701",
+      "name": "water",
+      "category": "Uncategorized",
+      "stock": 10,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-7994",
+      "name": "towel",
+      "category": "New",
+      "stock": 11,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-23"
+    },
+    {
+      "id": "INV-2411",
+      "name": "sugar",
+      "category": "Uncategorized",
+      "stock": 5,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-0143",
+      "name": "Water",
+      "category": "Drinks",
+      "stock": 4,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-7908",
+      "name": "Water",
+      "category": "drinks",
+      "stock": 37,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-4272",
+      "name": "ab",
+      "category": "Uncategorized",
+      "stock": 10,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
     }
   ]
 }

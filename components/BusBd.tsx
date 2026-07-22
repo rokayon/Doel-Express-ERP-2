@@ -22,8 +22,8 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
 
   const canEdit = canWrite ?? WRITE_ROLES.includes(userRole || '');
 
-  const [dateFrom, setDateFrom] = useState(firstOfMonth);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [autoCalcClosing, setAutoCalcClosing] = useState(true);

@@ -33,7 +33,7 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!savedUser);
   const [currentUser, setCurrentUser] = useState<User | null>(savedUser ? JSON.parse(savedUser) : null);
-  const VALID_TABS = ['dashboard','fleetManagement','ticketSalesRecord','counters','inventory','finance','hr','maintenance','reports','settings','userManagement','vouchers'];
+  const VALID_TABS = ['dashboard','fleetManagement','ticketSalesRecord','counters','inventory','finance','hr','maintenance','reports','settings','userManagement','vouchers','bkash','busbd'];
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('doel_tab') || 'dashboard';
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
