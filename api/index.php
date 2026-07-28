@@ -182,6 +182,38 @@ try {
       }
       break;
 
+    // ========== INVENTORY ISSUES (Bus No log) ==========
+    case 'inventory-issues':
+      require_once __DIR__ . '/routes/inventory.php';
+      if ($method === 'GET') {
+        handleInventoryIssueList($db_instance);
+      } elseif ($method === 'POST') {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'PURCHASE', 'SUPERVISOR', 'MANAGING_DIRECTOR', 'DIRECTOR'], 'inventory');
+        handleInventoryIssueCreate($db_instance, $data);
+      } elseif ($method === 'DELETE' && $id) {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'PURCHASE', 'SUPERVISOR', 'MANAGING_DIRECTOR', 'DIRECTOR'], 'inventory');
+        handleInventoryIssueDelete($db_instance, $id);
+      } else {
+        Response::error('Method not allowed', 405);
+      }
+      break;
+
+    // ========== INVENTORY RECEIPTS (per-item stock-in log) ==========
+    case 'inventory-receipts':
+      require_once __DIR__ . '/routes/inventory.php';
+      if ($method === 'GET') {
+        handleInventoryReceiptList($db_instance);
+      } elseif ($method === 'POST') {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'PURCHASE', 'SUPERVISOR', 'MANAGING_DIRECTOR', 'DIRECTOR'], 'inventory');
+        handleInventoryReceiptCreate($db_instance, $data);
+      } elseif ($method === 'DELETE' && $id) {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'PURCHASE', 'SUPERVISOR', 'MANAGING_DIRECTOR', 'DIRECTOR'], 'inventory');
+        handleInventoryReceiptDelete($db_instance, $id);
+      } else {
+        Response::error('Method not allowed', 405);
+      }
+      break;
+
     // ========== NOTIFICATIONS ==========
     case 'notifications':
       require_once __DIR__ . '/routes/notifications.php';

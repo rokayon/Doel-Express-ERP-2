@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BkashRecord } from '../types';
 import { Language } from '../translations';
 
@@ -33,7 +33,8 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
   const [addDate, setAddDate] = useState(today);
   const [addNotes, setAddNotes] = useState('');
   // Add mode inputs
-  const [openingBalanceInput, setOpeningBalanceInput] = useState('0');
+  // null = show live auto-carried opening balance; a string = user has manually edited it
+  const [openingBalanceOverride, setOpeningBalanceOverride] = useState<string | null>(null);
   const [dhakaDR, setDhakaDR] = useState('');
   const [coxDR, setCoxDR] = useState('');
   const [dailyM2B, setDailyM2B] = useState('');
@@ -48,25 +49,24 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     notes: '',
   });
 
-  // ── Auto-carry: last closing of a merchant before a date ──
+  // ── Auto-carry: always the truly latest closing of a merchant, regardless of selected date ──
   const getOpeningBalance = useCallback(
-    (merchant: 'Dhaka' | 'Cox', beforeDate: string, excludeId?: string): number => {
+    (merchant: 'Dhaka' | 'Cox', excludeId?: string): number => {
       const prev = records
-        .filter(r => r.merchant === merchant && r.date < beforeDate && r.id !== excludeId)
+        .filter(r => r.merchant === merchant && r.id !== excludeId)
         .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
       return prev.length > 0 ? prev[0].closingBalance : 0;
     },
     [records]
   );
 
-  // Auto-populate opening balance: total of both merchants' previous closings
-  useEffect(() => {
-    if (!editingId) {
-      const dhakaOB = getOpeningBalance('Dhaka', addDate);
-      const coxOB = getOpeningBalance('Cox', addDate);
-      setOpeningBalanceInput(String(dhakaOB + coxOB));
-    }
-  }, [addDate, records, editingId, getOpeningBalance]);
+  // Live auto-carried opening balance — always in sync with records, no async lag.
+  // Recomputed synchronously on every render, so it's correct the instant the modal opens.
+  const autoOpeningBalance = useMemo(
+    () => getOpeningBalance('Dhaka') + getOpeningBalance('Cox'),
+    [getOpeningBalance]
+  );
+  const openingBalanceInput = openingBalanceOverride !== null ? openingBalanceOverride : String(autoOpeningBalance);
 
   // ── Add mode calculations ─────────────────────────────
   const addCalc = useMemo(() => {
@@ -77,8 +77,8 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     const totalM2B = parseFloat(dailyM2B) || 0;
 
     // Get per-merchant opening balances for creating records
-    const dhakaOB = getOpeningBalance('Dhaka', addDate);
-    const coxOB   = getOpeningBalance('Cox', addDate);
+    const dhakaOB = getOpeningBalance('Dhaka');
+    const coxOB   = getOpeningBalance('Cox');
 
     // Split M2B proportionally by Daily Received
     const dhakaRatio  = totalDR > 0 ? dhakaDRV / totalDR : (dhakaDRV > 0 ? 1 : 0);
@@ -127,17 +127,24 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     [records, merchantTab, dateFrom, dateTo]
   );
 
-  const totals = useMemo(() =>
-    filtered.reduce((acc, r) => ({
+  const totals = useMemo(() => {
+    const sums = filtered.reduce((acc, r) => ({
       openingBalance: acc.openingBalance + r.openingBalance,
       dailyReceived:  acc.dailyReceived  + r.dailyReceived,
       merchantToBank: acc.merchantToBank + r.merchantToBank,
       bkashCharge:    acc.bkashCharge    + r.bkashCharge,
       netBankReceipt: acc.netBankReceipt + r.netBankReceipt,
       closingBalance: acc.closingBalance + r.closingBalance,
-    }), { openingBalance: 0, dailyReceived: 0, merchantToBank: 0, bkashCharge: 0, netBankReceipt: 0, closingBalance: 0 }),
-    [filtered]
-  );
+    }), { openingBalance: 0, dailyReceived: 0, merchantToBank: 0, bkashCharge: 0, netBankReceipt: 0, closingBalance: 0 });
+
+    // Closing Balance = latest date's combined closing, not a sum across all dates
+    const latestDate = filtered[0]?.date;
+    const latestClosing = latestDate
+      ? filtered.filter(r => r.date === latestDate).reduce((s, r) => s + r.closingBalance, 0)
+      : 0;
+
+    return { ...sums, closingBalance: latestClosing };
+  }, [filtered]);
 
   // ── Date groups for table ─────────────────────────────
   const dateGroups = useMemo(() => {
@@ -163,7 +170,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
   const fmt = (n: number) => '৳' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
   const resetForm = () => {
-    setOpeningBalanceInput('0');
+    setOpeningBalanceOverride(null);
     setDhakaDR(''); setCoxDR(''); setDailyM2B('');
     setAddDate(today); setAddNotes('');
     setEditData({ date: today, merchant: 'Dhaka', openingBalance: 0, dailyReceived: 0, merchantToBank: '', notes: '' });
@@ -588,7 +595,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold pointer-events-none">৳</span>
                         <input type="number" step="0.01"
                           value={openingBalanceInput}
-                          onChange={e => setOpeningBalanceInput(e.target.value)}
+                          onChange={e => setOpeningBalanceOverride(e.target.value)}
                           onWheel={e => e.currentTarget.blur()}
                           className="w-full bg-white dark:bg-slate-800 border-2 border-blue-200 dark:border-blue-800/50 rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-500 dark:text-white tabular-nums transition-all"
                           placeholder="0" />

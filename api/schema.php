@@ -28,6 +28,8 @@ class Schema {
     $this->createCounters();
     $this->createNotifications();
     $this->createInventory();
+    $this->createInventoryIssues();
+    $this->createInventoryReceipts();
     $this->createVouchers();
     $this->createBkashRecords();
     $this->createBusBdRecords();
@@ -265,6 +267,7 @@ class Schema {
     $sql = "CREATE TABLE IF NOT EXISTS {$this->prefix}inventory (
       id VARCHAR(50) PRIMARY KEY,
       name VARCHAR(200) NOT NULL,
+      partNo VARCHAR(100),
       category VARCHAR(100),
       stock INT DEFAULT 0,
       minStock INT DEFAULT 5,
@@ -274,7 +277,64 @@ class Schema {
       INDEX idx_category (category),
       INDEX idx_stock (stock)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+
+    $this->db->exec($sql);
+
+    // Add partNo column if the table already existed without it
+    try {
+      $this->db->exec("ALTER TABLE {$this->prefix}inventory ADD COLUMN partNo VARCHAR(100) AFTER name");
+    } catch (Exception $e) {
+      // Column already exists — ignore
+    }
+  }
+
+  private function createInventoryIssues() {
+    $sql = "CREATE TABLE IF NOT EXISTS {$this->prefix}inventory_issues (
+      id VARCHAR(50) PRIMARY KEY,
+      date DATE NOT NULL,
+      itemId VARCHAR(50),
+      itemName VARCHAR(200) NOT NULL,
+      partNo VARCHAR(100),
+      qty INT DEFAULT 0,
+      unit VARCHAR(50),
+      busNo VARCHAR(100),
+      side VARCHAR(50),
+      receiver VARCHAR(150),
+      remarks VARCHAR(255),
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_date (date),
+      INDEX idx_item (itemId),
+      INDEX idx_bus (busNo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    $this->db->exec($sql);
+
+    // Add new columns if the table already existed without them
+    foreach ([
+      "ALTER TABLE {$this->prefix}inventory_issues ADD COLUMN partNo VARCHAR(100) AFTER itemName",
+      "ALTER TABLE {$this->prefix}inventory_issues ADD COLUMN side VARCHAR(50) AFTER busNo",
+      "ALTER TABLE {$this->prefix}inventory_issues ADD COLUMN receiver VARCHAR(150) AFTER side",
+    ] as $alterSql) {
+      try { $this->db->exec($alterSql); } catch (Exception $e) { /* column already exists */ }
+    }
+  }
+
+  private function createInventoryReceipts() {
+    $sql = "CREATE TABLE IF NOT EXISTS {$this->prefix}inventory_receipts (
+      id VARCHAR(50) PRIMARY KEY,
+      date DATE NOT NULL,
+      itemId VARCHAR(50),
+      itemName VARCHAR(200) NOT NULL,
+      partNo VARCHAR(100),
+      category VARCHAR(100),
+      qty INT DEFAULT 0,
+      unit VARCHAR(50),
+      remarks VARCHAR(255),
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_date (date),
+      INDEX idx_item (itemId)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
     $this->db->exec($sql);
   }
 
@@ -314,6 +374,10 @@ class Schema {
       id VARCHAR(50) PRIMARY KEY,
       date DATE NOT NULL,
       openingAmount DECIMAL(15,2) DEFAULT 0,
+      noOfTickets INT DEFAULT 0,
+      ticketAmount DECIMAL(15,2) DEFAULT 0,
+      commission DECIMAL(15,2) DEFAULT 0,
+      doelWithdrawAmount DECIMAL(15,2) DEFAULT 0,
       dailyAmount DECIMAL(15,2) DEFAULT 0,
       closingAmount DECIMAL(15,2) DEFAULT 0,
       notes TEXT NULL,
@@ -321,6 +385,16 @@ class Schema {
       INDEX idx_date (date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     $this->db->exec($sql);
+
+    // Add ticket-based commission columns if table already existed without them
+    foreach ([
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN noOfTickets INT DEFAULT 0 AFTER openingAmount",
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN ticketAmount DECIMAL(15,2) DEFAULT 0 AFTER noOfTickets",
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN commission DECIMAL(15,2) DEFAULT 0 AFTER ticketAmount",
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN doelWithdrawAmount DECIMAL(15,2) DEFAULT 0 AFTER commission",
+    ] as $alterSql) {
+      try { $this->db->exec($alterSql); } catch (Exception $e) { /* column already exists */ }
+    }
   }
 
   private function seedInitialData() {

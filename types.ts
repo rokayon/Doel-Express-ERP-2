@@ -65,11 +65,38 @@ export interface Trip {
 export interface InventoryItem {
   id: string;
   name: string;
+  partNo?: string;
   category: string;
   stock: number;
   minStock: number;
   unit: string;
   lastUpdated: string;
+}
+
+export interface InventoryIssue {
+  id: string;
+  date: string;
+  itemId?: string;
+  itemName: string;
+  partNo?: string;
+  qty: number;
+  unit: string;
+  busNo?: string;
+  side?: string;
+  receiver?: string;
+  remarks?: string;
+}
+
+export interface InventoryReceipt {
+  id: string;
+  date: string;
+  itemId?: string;
+  itemName: string;
+  partNo?: string;
+  category?: string;
+  qty: number;
+  unit: string;
+  remarks?: string;
 }
 
 export interface Transaction {
@@ -133,7 +160,10 @@ export interface BusBdRecord {
   id: string;
   date: string;
   openingAmount: number;
-  dailyAmount: number;
+  noOfTickets: number;
+  ticketAmount: number;
+  commission: number;
+  doelWithdrawAmount: number;
   closingAmount: number;
   notes?: string;
 }

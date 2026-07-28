@@ -214,7 +214,18 @@
       "closingBalance": 15190.99
     }
   ],
-  "busBdRecords": [],
+  "busBdRecords": [
+    {
+      "id": "BBD-53396642",
+      "date": "2026-07-28",
+      "openingAmount": 15000,
+      "noOfTickets": 55,
+      "ticketAmount": 5400,
+      "commission": 5500,
+      "doelWithdrawAmount": -100,
+      "closingAmount": 14900
+    }
+  ],
   "staff": [
     {
       "id": "EMP001",
@@ -368,6 +379,25 @@
       "minStock": 0,
       "unit": "pcs",
       "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-1722",
+      "name": "ab",
+      "partNo": "1223",
+      "category": "df",
+      "stock": 3,
+      "minStock": 5,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-22"
+    },
+    {
+      "id": "INV-2505",
+      "name": "ad",
+      "category": "asd",
+      "stock": 10,
+      "minStock": 0,
+      "unit": "pcs",
+      "lastUpdated": "2026-07-25"
     }
   ]
 }

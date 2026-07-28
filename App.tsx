@@ -18,7 +18,7 @@ import Vouchers from './components/Vouchers';
 import Bkash from './components/Bkash';
 import BusBd from './components/BusBd';
 import { PERMISSIONS } from './constants';
-import { Trip, Transaction, InventoryItem, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
+import { Trip, Transaction, InventoryItem, InventoryIssue, InventoryReceipt, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
 import { Language, translations } from './translations';
 
 
@@ -61,6 +61,8 @@ const App: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventoryIssues, setInventoryIssues] = useState<InventoryIssue[]>([]);
+  const [inventoryReceipts, setInventoryReceipts] = useState<InventoryReceipt[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [ticketSales, setTicketSales] = useState<TicketSalesRecord[]>([]);
   const [counters, setCounters] = useState<Counter[]>([]);
@@ -118,7 +120,7 @@ const App: React.FC = () => {
         }
 
         // Fetch all modules in parallel — API enforces per-endpoint RBAC (403 → null → state unchanged)
-        const [notif, coachesRes, tripsRes, countersRes, usersRes, staffRes, finRes, salesRes, invRes, vouchersRes, bkashRes, busBdRes] = await Promise.all([
+        const [notif, coachesRes, tripsRes, countersRes, usersRes, staffRes, finRes, salesRes, invRes, invIssuesRes, invReceiptsRes, vouchersRes, bkashRes, busBdRes] = await Promise.all([
           load('/api/notifications'),
           load('/api/coaches'),
           load('/api/trips'),
@@ -128,6 +130,8 @@ const App: React.FC = () => {
           load(`/api/finance?role=${role}`),
           load(`/api/sales/records?role=${role}`),
           load(`/api/inventory?role=${role}`),
+          load('/api/inventory-issues'),
+          load('/api/inventory-receipts'),
           load('/api/vouchers'),
           load('/api/bkash'),
           load('/api/busbd'),
@@ -160,6 +164,12 @@ const App: React.FC = () => {
 
         if (invRes?.success && Array.isArray(invRes.data)) setInventory(invRes.data);
         else if (Array.isArray(invRes)) setInventory(invRes);
+
+        if (invIssuesRes?.success && Array.isArray(invIssuesRes.data)) setInventoryIssues(invIssuesRes.data);
+        else if (Array.isArray(invIssuesRes)) setInventoryIssues(invIssuesRes);
+
+        if (invReceiptsRes?.success && Array.isArray(invReceiptsRes.data)) setInventoryReceipts(invReceiptsRes.data);
+        else if (Array.isArray(invReceiptsRes)) setInventoryReceipts(invReceiptsRes);
 
         if (vouchersRes?.success && Array.isArray(vouchersRes.data)) setVouchers(vouchersRes.data);
         else if (Array.isArray(vouchersRes)) setVouchers(vouchersRes);
@@ -409,6 +419,30 @@ const App: React.FC = () => {
   const deleteInventory = async (id: string) => {
     setInventory(prev => prev.filter(i => i.id !== id));
     await apiMutate('DELETE', `/api/inventory/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Inventory Issue Log Handlers (Bus No tracking)
+  const addInventoryIssue = async (issue: InventoryIssue) => {
+    setInventoryIssues(prev => [issue, ...prev]);
+    await apiMutate('POST', '/api/inventory-issues', issue);
+    setRefreshKey(prev => prev + 1);
+  };
+  const deleteInventoryIssue = async (id: string) => {
+    setInventoryIssues(prev => prev.filter(i => i.id !== id));
+    await apiMutate('DELETE', `/api/inventory-issues/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Inventory Receipt Log Handlers (per-item stock-in history)
+  const addInventoryReceipt = async (receipt: InventoryReceipt) => {
+    setInventoryReceipts(prev => [receipt, ...prev]);
+    await apiMutate('POST', '/api/inventory-receipts', receipt);
+    setRefreshKey(prev => prev + 1);
+  };
+  const deleteInventoryReceipt = async (id: string) => {
+    setInventoryReceipts(prev => prev.filter(i => i.id !== id));
+    await apiMutate('DELETE', `/api/inventory-receipts/${id}`);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -736,7 +770,7 @@ const App: React.FC = () => {
           canWrite={hasPermission('counters')}
         />
       );
-      case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} lang={language} />;
+      case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} issues={inventoryIssues} onAddIssue={addInventoryIssue} onDeleteIssue={deleteInventoryIssue} receipts={inventoryReceipts} onAddReceipt={addInventoryReceipt} onDeleteReceipt={deleteInventoryReceipt} coaches={coaches} lang={language} />;
       case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} userRole={currentUser?.role} userId={currentUser?.id} counters={counters} />;
       case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} userRole={currentUser?.role} userId={currentUser?.id} />;
       case 'maintenance': return <Maintenance trips={trips} inventory={inventory} coaches={coaches} onUseInventory={adjustInventoryStock} lang={language} />;
