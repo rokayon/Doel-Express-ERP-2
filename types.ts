@@ -139,6 +139,7 @@ export interface Voucher {
   id: string;
   name: string;
   image?: string;
+  images?: string[];
   createdAt: string;
   expiresAt: string;
 }
@@ -163,6 +164,7 @@ export interface BusBdRecord {
   noOfTickets: number;
   ticketAmount: number;
   commission: number;
+  softwareCommission: number;
   doelWithdrawAmount: number;
   closingAmount: number;
   notes?: string;

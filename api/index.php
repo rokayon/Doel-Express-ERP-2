@@ -262,6 +262,8 @@ try {
         handleVoucherList($db_instance->getConnection());
       } elseif ($method === 'POST') {
         handleVoucherCreate($db_instance->getConnection(), $data);
+      } elseif ($method === 'PUT' && $id) {
+        handleVoucherUpdate($db_instance->getConnection(), $id, $data);
       } elseif ($method === 'DELETE' && $id) {
         handleVoucherDelete($db_instance->getConnection(), $id);
       } else {

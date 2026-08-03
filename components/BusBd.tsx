@@ -32,14 +32,18 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
   const [openingBalanceOverride, setOpeningBalanceOverride] = useState<string | null>(null);
   const [noOfTickets, setNoOfTickets] = useState('');
   const [ticketAmount, setTicketAmount] = useState('');
+  const [softwareCommission, setSoftwareCommission] = useState('');
+  const [doelWithdrawAmount, setDoelWithdrawAmount] = useState('');
   const [addNotes, setAddNotes] = useState('');
 
   // Edit mode
   const [editData, setEditData] = useState({
     date: today,
-    openingAmount: 0,
+    openingAmount: '0',
     noOfTickets: '',
     ticketAmount: '',
+    softwareCommission: '',
+    doelWithdrawAmount: '',
     notes: '',
   });
 
@@ -57,24 +61,28 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
   const autoOpeningBalance = useMemo(() => getOpeningBalance(), [getOpeningBalance]);
   const openingBalanceInput = openingBalanceOverride !== null ? openingBalanceOverride : String(autoOpeningBalance);
 
+  // Doel Net BusBD Amount = Opening + (TicketAmount - (Commission + SoftwareCommission + DoelWithdrawAmount))
   const addCalc = useMemo(() => {
     const opening = parseFloat(openingBalanceInput) || 0;
     const tickets = parseInt(noOfTickets) || 0;
     const amount = parseFloat(ticketAmount) || 0;
+    const swComm = parseFloat(softwareCommission) || 0;
+    const doelWithdraw = parseFloat(doelWithdrawAmount) || 0;
     const commission = parseFloat((tickets * COMMISSION_PER_TICKET).toFixed(2));
-    const doelWithdraw = parseFloat((amount - commission).toFixed(2));
-    const closing = parseFloat((opening + doelWithdraw).toFixed(2));
-    return { opening, tickets, amount, commission, doelWithdraw, closing };
-  }, [openingBalanceInput, noOfTickets, ticketAmount]);
+    const netAmount = parseFloat((opening + (amount - (commission + swComm + doelWithdraw))).toFixed(2));
+    return { opening, tickets, amount, swComm, doelWithdraw, commission, closing: netAmount };
+  }, [openingBalanceInput, noOfTickets, ticketAmount, softwareCommission, doelWithdrawAmount]);
 
   const editCalc = useMemo(() => {
+    const opening = parseFloat(editData.openingAmount) || 0;
     const tickets = parseInt(editData.noOfTickets) || 0;
     const amount = parseFloat(editData.ticketAmount) || 0;
+    const swComm = parseFloat(editData.softwareCommission) || 0;
+    const doelWithdraw = parseFloat(editData.doelWithdrawAmount) || 0;
     const commission = parseFloat((tickets * COMMISSION_PER_TICKET).toFixed(2));
-    const doelWithdraw = parseFloat((amount - commission).toFixed(2));
-    const closing = parseFloat((editData.openingAmount + doelWithdraw).toFixed(2));
-    return { tickets, amount, commission, doelWithdraw, closing };
-  }, [editData.noOfTickets, editData.ticketAmount, editData.openingAmount]);
+    const netAmount = parseFloat((opening + (amount - (commission + swComm + doelWithdraw))).toFixed(2));
+    return { opening, tickets, amount, swComm, doelWithdraw, commission, closing: netAmount };
+  }, [editData.noOfTickets, editData.ticketAmount, editData.softwareCommission, editData.doelWithdrawAmount, editData.openingAmount]);
 
   const filtered = useMemo(() => {
     return records
@@ -92,9 +100,10 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
       noOfTickets: acc.noOfTickets + r.noOfTickets,
       ticketAmount: acc.ticketAmount + r.ticketAmount,
       commission: acc.commission + r.commission,
+      softwareCommission: acc.softwareCommission + r.softwareCommission,
       doelWithdrawAmount: acc.doelWithdrawAmount + r.doelWithdrawAmount,
       closingAmount: acc.closingAmount + r.closingAmount,
-    }), { openingAmount: 0, noOfTickets: 0, ticketAmount: 0, commission: 0, doelWithdrawAmount: 0, closingAmount: 0 });
+    }), { openingAmount: 0, noOfTickets: 0, ticketAmount: 0, commission: 0, softwareCommission: 0, doelWithdrawAmount: 0, closingAmount: 0 });
 
     // Closing = latest date's closing, not a sum across all dates
     const latestDate = filtered[0]?.date;
@@ -107,53 +116,85 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
 
   const resetForm = () => {
     setOpeningBalanceOverride(null);
-    setNoOfTickets(''); setTicketAmount(''); setAddDate(today); setAddNotes('');
-    setEditData({ date: today, openingAmount: 0, noOfTickets: '', ticketAmount: '', notes: '' });
+    setNoOfTickets(''); setTicketAmount(''); setSoftwareCommission(''); setDoelWithdrawAmount(''); setAddDate(today); setAddNotes('');
+    setEditData({ date: today, openingAmount: '0', noOfTickets: '', ticketAmount: '', softwareCommission: '', doelWithdrawAmount: '', notes: '' });
     setEditingId(null);
   };
 
   const handleEdit = (r: BusBdRecord) => {
     setEditData({
       date: r.date,
-      openingAmount: r.openingAmount,
+      openingAmount: String(r.openingAmount),
       noOfTickets: String(r.noOfTickets),
       ticketAmount: String(r.ticketAmount),
+      softwareCommission: String(r.softwareCommission || 0),
+      doelWithdrawAmount: String(r.doelWithdrawAmount || 0),
       notes: r.notes || '',
     });
     setEditingId(r.id);
     setShowModal(true);
   };
 
+  // Chain recalculation: opening of any record = closing of the previous record.
+  // When a record is edited/inserted, every later record's opening (and thus closing) must
+  // be recomputed in date order, cascading forward from the changed record.
+  const recalcForward = (changedRecord: BusBdRecord) => {
+    const exists = records.some(r => r.id === changedRecord.id);
+    const working = exists
+      ? records.map(r => r.id === changedRecord.id ? changedRecord : r)
+      : [...records, changedRecord];
+    const sorted = working.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    const startIdx = sorted.findIndex(r => r.id === changedRecord.id);
+    if (startIdx === -1) return;
+
+    let runningClosing = sorted[startIdx].closingAmount;
+    for (let i = startIdx + 1; i < sorted.length; i++) {
+      const r = sorted[i];
+      const newOpening = runningClosing;
+      const newClosing = parseFloat((newOpening + (r.ticketAmount - (r.commission + r.softwareCommission + r.doelWithdrawAmount))).toFixed(2));
+      if (newOpening !== r.openingAmount || newClosing !== r.closingAmount) {
+        onUpdate(r.id, { ...r, openingAmount: newOpening, closingAmount: newClosing });
+      }
+      runningClosing = newClosing;
+    }
+  };
+
   const handleSubmitEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdate(editingId!, {
+    const updated: BusBdRecord = {
       id: editingId!,
       date: editData.date,
-      openingAmount: editData.openingAmount,
+      openingAmount: editCalc.opening,
       noOfTickets: editCalc.tickets,
       ticketAmount: editCalc.amount,
       commission: editCalc.commission,
+      softwareCommission: editCalc.swComm,
       doelWithdrawAmount: editCalc.doelWithdraw,
       closingAmount: editCalc.closing,
       notes: editData.notes.trim() || undefined,
-    });
+    };
+    onUpdate(editingId!, updated);
+    recalcForward(updated);
     setShowModal(false);
     resetForm();
   };
 
   const handleSubmitAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
+    const newRecord: BusBdRecord = {
       id: 'BBD-' + Date.now().toString().slice(-8),
       date: addDate,
       openingAmount: addCalc.opening,
       noOfTickets: addCalc.tickets,
       ticketAmount: addCalc.amount,
       commission: addCalc.commission,
+      softwareCommission: addCalc.swComm,
       doelWithdrawAmount: addCalc.doelWithdraw,
       closingAmount: addCalc.closing,
       notes: addNotes.trim() || undefined,
-    });
+    };
+    onAdd(newRecord);
+    recalcForward(newRecord);
     setShowModal(false);
     resetForm();
   };
@@ -195,13 +236,14 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
 
       {/* Summary Cards */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           {[
             { label: lang === 'en' ? 'No. of Tickets' : 'টিকেট সংখ্যা', value: totals.noOfTickets, icon: 'fa-ticket', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30', isCount: true },
             { label: lang === 'en' ? 'Ticket Amount' : 'টিকেট পরিমাণ', value: totals.ticketAmount, icon: 'fa-money-bill-trend-up', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' },
             { label: lang === 'en' ? 'Bus BD Commission' : 'বাস বিডি কমিশন', value: totals.commission, icon: 'fa-percent', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/30' },
-            { label: lang === 'en' ? 'Doel Withdraw Amount' : 'দোয়েল উইথড্র পরিমাণ', value: totals.doelWithdrawAmount, icon: 'fa-circle-check', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20 border-violet-100 dark:border-violet-900/30' },
-            { label: lang === 'en' ? 'Closing Balance' : 'ক্লোজিং ব্যালেন্স', value: totals.closingAmount, icon: 'fa-scale-balanced', color: totals.closingAmount >= 0 ? 'text-slate-600 dark:text-slate-400' : 'text-rose-600 dark:text-rose-400', bg: totals.closingAmount >= 0 ? 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/30' },
+            { label: lang === 'en' ? 'Software Commission' : 'সফটওয়্যার কমিশন', value: totals.softwareCommission, icon: 'fa-code', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30' },
+            { label: lang === 'en' ? 'Doel Withdraw Amount' : 'দোয়েল উইথড্র পরিমাণ', value: totals.doelWithdrawAmount, icon: 'fa-hand-holding-dollar', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20 border-violet-100 dark:border-violet-900/30' },
+            { label: lang === 'en' ? 'Doel Net BusBD Amount' : 'দোয়েল নেট বাসবিডি পরিমাণ', value: totals.closingAmount, icon: 'fa-scale-balanced', color: totals.closingAmount >= 0 ? 'text-slate-600 dark:text-slate-400' : 'text-rose-600 dark:text-rose-400', bg: totals.closingAmount >= 0 ? 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/30' },
           ].map(stat => (
             <div key={stat.label} className={`${stat.bg} rounded-2xl p-5 border`}>
               <div className="flex items-center gap-2 mb-2">
@@ -292,8 +334,9 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                     lang === 'en' ? 'No. of Ticket' : 'টিকেট সংখ্যা',
                     lang === 'en' ? 'Ticket Amount' : 'টিকেট পরিমাণ',
                     lang === 'en' ? 'Commission' : 'কমিশন',
+                    lang === 'en' ? 'Software Comm.' : 'সফটওয়্যার কমিশন',
                     lang === 'en' ? 'Doel Withdraw' : 'দোয়েল উইথড্র',
-                    lang === 'en' ? 'Closing' : 'ক্লোজিং',
+                    lang === 'en' ? 'Doel Net BusBD Amt.' : 'দোয়েল নেট পরিমাণ',
                     lang === 'en' ? 'Notes' : 'নোট',
                     lang === 'en' ? 'Actions' : 'অ্যাকশন',
                   ].map(h => (
@@ -312,6 +355,7 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                   <td className="px-4 py-3 font-black tabular-nums text-blue-300">{totals.noOfTickets.toLocaleString('en-IN')}</td>
                   <td className="px-4 py-3 font-black tabular-nums text-emerald-400">{fmt(totals.ticketAmount)}</td>
                   <td className="px-4 py-3 font-black tabular-nums text-rose-400">{fmt(totals.commission)}</td>
+                  <td className="px-4 py-3 font-black tabular-nums text-amber-400">{fmt(totals.softwareCommission)}</td>
                   <td className="px-4 py-3 font-black tabular-nums text-violet-400 bg-violet-500/10">{fmt(totals.doelWithdrawAmount)}</td>
                   <td className="px-4 py-3 font-black tabular-nums text-white">{fmt(totals.closingAmount)}</td>
                   <td colSpan={2} className="px-4 py-3 text-slate-600">—</td>
@@ -325,6 +369,7 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                     <td className="px-4 py-3 tabular-nums font-bold text-blue-700 dark:text-blue-400">{r.noOfTickets.toLocaleString('en-IN')}</td>
                     <td className="px-4 py-3 tabular-nums font-bold text-emerald-700 dark:text-emerald-400">{fmt(r.ticketAmount)}</td>
                     <td className="px-4 py-3 tabular-nums font-bold text-rose-600 dark:text-rose-400">{fmt(r.commission)}</td>
+                    <td className="px-4 py-3 tabular-nums font-bold text-amber-600 dark:text-amber-400">{fmt(r.softwareCommission || 0)}</td>
                     <td className="px-4 py-3 tabular-nums font-black text-violet-700 dark:text-violet-300 bg-violet-50/50 dark:bg-violet-900/5">{fmt(r.doelWithdrawAmount)}</td>
                     <td className={`px-4 py-3 tabular-nums font-bold ${r.closingAmount >= 0 ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400'}`}>{fmt(r.closingAmount)}</td>
                     <td className="px-4 py-3 text-xs text-slate-500 max-w-[150px] truncate">{r.notes || '—'}</td>
@@ -380,9 +425,20 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                   <input type="date" value={editData.date} onChange={e => setEditData({ ...editData, date: e.target.value })} className={inputCls} />
                 </div>
 
-                <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Opening Balance</p>
-                  <p className="font-black tabular-nums text-slate-600 dark:text-slate-300">{fmt(editData.openingAmount)}</p>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Opening Balance</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold pointer-events-none">৳</span>
+                    <input type="number" step="0.01"
+                      value={editData.openingAmount}
+                      onChange={e => setEditData({ ...editData, openingAmount: e.target.value })}
+                      onWheel={e => e.currentTarget.blur()}
+                      className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-200 dark:border-emerald-800/50 rounded-xl pl-7 pr-3 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-500 dark:text-white tabular-nums transition-all"
+                      placeholder="0" />
+                  </div>
+                  <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold mt-1">
+                    <i className="fa-solid fa-triangle-exclamation mr-1"></i>Changing this recalculates all later records' opening/closing automatically
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -396,21 +452,29 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                   </div>
                 </div>
 
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Software Comm. (Received)</label>
+                  <input type="number" min="0" step="0.01" value={editData.softwareCommission} onChange={e => setEditData({ ...editData, softwareCommission: e.target.value })} onWheel={e => e.currentTarget.blur()} className={inputCls} placeholder="0.00" />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Doel Withdraw Amount</label>
+                  <input type="number" min="0" step="0.01" value={editData.doelWithdrawAmount} onChange={e => setEditData({ ...editData, doelWithdrawAmount: e.target.value })} onWheel={e => e.currentTarget.blur()} className={inputCls} placeholder="0.00" />
+                </div>
+
                 {editCalc.amount > 0 && (
                   <div className="rounded-2xl p-4 space-y-2.5" style={{ backgroundColor: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)' }}>
                     <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BUSBD_GREEN }}>
-                      <i className="fa-solid fa-calculator mr-1.5"></i>Auto-Calculated
+                      <i className="fa-solid fa-calculator mr-1.5"></i>Bus BD Commission (auto)
                     </p>
-                    {[
-                      { label: 'Bus BD Commission (৳100/ticket)', value: editCalc.commission, cls: 'text-rose-600 dark:text-rose-400' },
-                      { label: 'Doel Withdraw Amount', value: editCalc.doelWithdraw, cls: 'text-violet-700 dark:text-violet-400' },
-                      { label: 'Closing Balance', value: editCalc.closing, cls: editCalc.closing >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' },
-                    ].map(row => (
-                      <div key={row.label} className="flex justify-between items-center text-sm">
-                        <span className="text-slate-500 text-xs font-bold">{row.label}</span>
-                        <span className={`font-black tabular-nums ${row.cls}`}>{fmt(row.value)}</span>
-                      </div>
-                    ))}
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 text-xs font-bold">Bus BD Commission (৳100/ticket)</span>
+                      <span className="font-black tabular-nums text-rose-600 dark:text-rose-400">{fmt(editCalc.commission)}</span>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-emerald-200 dark:border-emerald-800/40 flex justify-between items-center">
+                      <span className="text-xs font-black uppercase tracking-widest" style={{ color: BUSBD_GREEN }}>Doel Net BusBD Amount</span>
+                      <span className={`text-lg font-black tabular-nums ${editCalc.closing >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{fmt(editCalc.closing)}</span>
+                    </div>
                   </div>
                 )}
 
@@ -464,19 +528,25 @@ const BusBd: React.FC<BusBdProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                   <input type="number" min="0" step="0.01" value={ticketAmount} onChange={e => setTicketAmount(e.target.value)} onWheel={e => e.currentTarget.blur()} className={inputCls} placeholder="0.00" />
                 </div>
 
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Software Comm. (Received)</label>
+                  <input type="number" min="0" step="0.01" value={softwareCommission} onChange={e => setSoftwareCommission(e.target.value)} onWheel={e => e.currentTarget.blur()} className={inputCls} placeholder="0.00" />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Doel Withdraw Amount</label>
+                  <input type="number" min="0" step="0.01" value={doelWithdrawAmount} onChange={e => setDoelWithdrawAmount(e.target.value)} onWheel={e => e.currentTarget.blur()} className={inputCls} placeholder="0.00" />
+                </div>
+
                 {addCalc.amount > 0 && (
                   <div className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
                     <div className="flex justify-between items-center px-4 py-3 border-b border-slate-100 dark:border-slate-700/50" style={{ background: 'rgba(22,163,74,0.04)' }}>
                       <span className="text-[11px] font-black text-rose-500 uppercase tracking-widest">Bus BD Commission (৳100/ticket)</span>
                       <span className="font-black tabular-nums text-rose-500">− {fmt(addCalc.commission)}</span>
                     </div>
-                    <div className="flex justify-between items-center px-4 py-3 bg-violet-50 dark:bg-violet-900/10">
-                      <span className="text-[11px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest">Doel Withdraw Amount</span>
-                      <span className="text-xl font-black tabular-nums text-violet-700 dark:text-violet-300">{fmt(addCalc.doelWithdraw)}</span>
-                    </div>
                     <div className="flex justify-between items-center px-4 py-3 border-t border-slate-100 dark:border-slate-700/50">
-                      <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Closing Balance</span>
-                      <span className={`font-black tabular-nums ${addCalc.closing >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-500'}`}>{fmt(addCalc.closing)}</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: BUSBD_GREEN }}>Doel Net BusBD Amount</span>
+                      <span className={`font-black tabular-nums text-lg ${addCalc.closing >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-500'}`}>{fmt(addCalc.closing)}</span>
                     </div>
                   </div>
                 )}

@@ -216,6 +216,28 @@
   ],
   "busBdRecords": [
     {
+      "id": "BBD-02992288",
+      "date": "2026-08-01",
+      "openingAmount": 13500,
+      "noOfTickets": 5,
+      "ticketAmount": 10000,
+      "commission": 500,
+      "softwareCommission": 100,
+      "doelWithdrawAmount": 500,
+      "closingAmount": 22400
+    },
+    {
+      "id": "BBD-01440157",
+      "date": "2026-08-01",
+      "openingAmount": 9000,
+      "noOfTickets": 5,
+      "ticketAmount": 5000,
+      "commission": 500,
+      "softwareCommission": 0,
+      "doelWithdrawAmount": 4500,
+      "closingAmount": 13500
+    },
+    {
       "id": "BBD-53396642",
       "date": "2026-07-28",
       "openingAmount": 15000,

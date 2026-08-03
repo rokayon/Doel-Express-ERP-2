@@ -573,6 +573,11 @@ const App: React.FC = () => {
     const ok = await apiMutate('POST', '/api/vouchers', voucher);
     if (ok) setRefreshKey(prev => prev + 1);
   };
+  const updateVoucher = async (id: string, updates: Partial<Voucher>) => {
+    setVouchers(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+    await apiMutate('PUT', `/api/vouchers/${id}`, updates);
+    setRefreshKey(prev => prev + 1);
+  };
   const deleteVoucher = async (id: string) => {
     setVouchers(prev => prev.filter(v => v.id !== id));
     await apiMutate('DELETE', `/api/vouchers/${id}`);
@@ -780,6 +785,7 @@ const App: React.FC = () => {
         <Vouchers
           vouchers={vouchers}
           onAdd={addVoucher}
+          onUpdate={updateVoucher}
           onDelete={deleteVoucher}
           lang={language}
           canWrite={hasPermission('vouchers')}

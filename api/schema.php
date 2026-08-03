@@ -343,11 +343,19 @@ class Schema {
       id VARCHAR(50) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       image MEDIUMTEXT,
+      images LONGTEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       expiresAt DATETIME NOT NULL,
       INDEX idx_expires (expiresAt)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     $this->db->exec($sql);
+
+    // Add images column (JSON array of compressed data URIs) if table already existed without it
+    try {
+      $this->db->exec("ALTER TABLE {$this->prefix}vouchers ADD COLUMN images LONGTEXT AFTER image");
+    } catch (Exception $e) {
+      // Column already exists — ignore
+    }
   }
 
   private function createBkashRecords() {
@@ -377,6 +385,7 @@ class Schema {
       noOfTickets INT DEFAULT 0,
       ticketAmount DECIMAL(15,2) DEFAULT 0,
       commission DECIMAL(15,2) DEFAULT 0,
+      softwareCommission DECIMAL(15,2) DEFAULT 0,
       doelWithdrawAmount DECIMAL(15,2) DEFAULT 0,
       dailyAmount DECIMAL(15,2) DEFAULT 0,
       closingAmount DECIMAL(15,2) DEFAULT 0,
@@ -391,7 +400,8 @@ class Schema {
       "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN noOfTickets INT DEFAULT 0 AFTER openingAmount",
       "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN ticketAmount DECIMAL(15,2) DEFAULT 0 AFTER noOfTickets",
       "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN commission DECIMAL(15,2) DEFAULT 0 AFTER ticketAmount",
-      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN doelWithdrawAmount DECIMAL(15,2) DEFAULT 0 AFTER commission",
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN softwareCommission DECIMAL(15,2) DEFAULT 0 AFTER commission",
+      "ALTER TABLE {$this->prefix}busbd_records ADD COLUMN doelWithdrawAmount DECIMAL(15,2) DEFAULT 0 AFTER softwareCommission",
     ] as $alterSql) {
       try { $this->db->exec($alterSql); } catch (Exception $e) { /* column already exists */ }
     }

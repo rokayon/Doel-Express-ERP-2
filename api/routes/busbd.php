@@ -10,7 +10,7 @@ function handleBusBdList($db) {
     $stmt = $db->prepare("SELECT * FROM doel_busbd_records ORDER BY date DESC");
     $stmt->execute();
     $raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $floatFields = ['openingAmount','ticketAmount','commission','doelWithdrawAmount','dailyAmount','closingAmount'];
+    $floatFields = ['openingAmount','ticketAmount','commission','softwareCommission','doelWithdrawAmount','dailyAmount','closingAmount'];
     $records = array_map(function($r) use ($floatFields) {
       foreach ($floatFields as $f) { if (isset($r[$f])) $r[$f] = (float)$r[$f]; }
       if (isset($r['noOfTickets'])) $r['noOfTickets'] = (int)$r['noOfTickets'];
@@ -32,16 +32,21 @@ function handleBusBdCreate($db, $data) {
     $opening = (float)($data['openingAmount'] ?? 0);
     $noOfTickets = (int)($data['noOfTickets'] ?? 0);
     $ticketAmount = (float)($data['ticketAmount'] ?? 0);
+    $softwareCommission = (float)($data['softwareCommission'] ?? 0);
     $commission = isset($data['commission']) ? (float)$data['commission'] : round($noOfTickets * BUSBD_COMMISSION_PER_TICKET, 2);
-    $doelWithdraw = isset($data['doelWithdrawAmount']) ? (float)$data['doelWithdrawAmount'] : round($ticketAmount - $commission, 2);
-    $closing = isset($data['closingAmount']) ? (float)$data['closingAmount'] : round($opening + $doelWithdraw, 2);
+    // Doel Withdraw Amount is a manual figure entered by the user, not derived
+    $doelWithdraw = (float)($data['doelWithdrawAmount'] ?? 0);
+    // Doel Net BusBD Amount = Opening + (TicketAmount - (Commission + SoftwareCommission + DoelWithdrawAmount))
+    $closing = isset($data['closingAmount'])
+      ? (float)$data['closingAmount']
+      : round($opening + ($ticketAmount - ($commission + $softwareCommission + $doelWithdraw)), 2);
 
     $stmt = $db->prepare("INSERT INTO doel_busbd_records
-      (id, date, openingAmount, noOfTickets, ticketAmount, commission, doelWithdrawAmount, closingAmount, notes, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (id, date, openingAmount, noOfTickets, ticketAmount, commission, softwareCommission, doelWithdrawAmount, closingAmount, notes, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       ON DUPLICATE KEY UPDATE
         date=VALUES(date), openingAmount=VALUES(openingAmount), noOfTickets=VALUES(noOfTickets),
-        ticketAmount=VALUES(ticketAmount), commission=VALUES(commission),
+        ticketAmount=VALUES(ticketAmount), commission=VALUES(commission), softwareCommission=VALUES(softwareCommission),
         doelWithdrawAmount=VALUES(doelWithdrawAmount), closingAmount=VALUES(closingAmount), notes=VALUES(notes)");
     $stmt->execute([
       $id, $data['date'],
@@ -49,6 +54,7 @@ function handleBusBdCreate($db, $data) {
       $noOfTickets,
       $ticketAmount,
       round($commission, 2),
+      round($softwareCommission, 2),
       round($doelWithdraw, 2),
       round($closing, 2),
       $data['notes'] ?? null,
@@ -64,12 +70,17 @@ function handleBusBdUpdate($db, $id, $data) {
     $opening = (float)($data['openingAmount'] ?? 0);
     $noOfTickets = (int)($data['noOfTickets'] ?? 0);
     $ticketAmount = (float)($data['ticketAmount'] ?? 0);
+    $softwareCommission = (float)($data['softwareCommission'] ?? 0);
     $commission = isset($data['commission']) ? (float)$data['commission'] : round($noOfTickets * BUSBD_COMMISSION_PER_TICKET, 2);
-    $doelWithdraw = isset($data['doelWithdrawAmount']) ? (float)$data['doelWithdrawAmount'] : round($ticketAmount - $commission, 2);
-    $closing = isset($data['closingAmount']) ? (float)$data['closingAmount'] : round($opening + $doelWithdraw, 2);
+    // Doel Withdraw Amount is a manual figure entered by the user, not derived
+    $doelWithdraw = (float)($data['doelWithdrawAmount'] ?? 0);
+    // Doel Net BusBD Amount = Opening + (TicketAmount - (Commission + SoftwareCommission + DoelWithdrawAmount))
+    $closing = isset($data['closingAmount'])
+      ? (float)$data['closingAmount']
+      : round($opening + ($ticketAmount - ($commission + $softwareCommission + $doelWithdraw)), 2);
 
     $stmt = $db->prepare("UPDATE doel_busbd_records SET
-      date=?, openingAmount=?, noOfTickets=?, ticketAmount=?, commission=?, doelWithdrawAmount=?, closingAmount=?, notes=?
+      date=?, openingAmount=?, noOfTickets=?, ticketAmount=?, commission=?, softwareCommission=?, doelWithdrawAmount=?, closingAmount=?, notes=?
       WHERE id=?");
     $stmt->execute([
       $data['date'],
@@ -77,6 +88,7 @@ function handleBusBdUpdate($db, $id, $data) {
       $noOfTickets,
       $ticketAmount,
       round($commission, 2),
+      round($softwareCommission, 2),
       round($doelWithdraw, 2),
       round($closing, 2),
       $data['notes'] ?? null,
