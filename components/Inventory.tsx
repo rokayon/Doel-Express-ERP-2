@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { InventoryItem, InventoryIssue, InventoryReceipt, Coach } from '../types';
+import { InventoryItem, InventoryIssue, InventoryReceipt, PartsRequisition, Coach } from '../types';
 import { Language, translations } from '../translations';
+import PartsRequisitionSlip from './PartsRequisition';
 
 interface InventoryProps {
   inventory: InventoryItem[];
@@ -14,6 +15,10 @@ interface InventoryProps {
   onAddReceipt: (receipt: InventoryReceipt) => void;
   onDeleteReceipt: (id: string) => void;
   coaches: Coach[];
+  requisitions: PartsRequisition[];
+  onAddRequisition: (req: PartsRequisition) => void;
+  onUpdateRequisition: (id: string, req: PartsRequisition) => void;
+  onDeleteRequisition: (id: string) => void;
   lang: Language;
 }
 
@@ -34,9 +39,10 @@ type LedgerRow = {
   runningBalance: number;
 };
 
-const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDelete, issues, onAddIssue, onDeleteIssue, receipts, onAddReceipt, onDeleteReceipt, coaches, lang }) => {
+const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDelete, issues, onAddIssue, onDeleteIssue, receipts, onAddReceipt, onDeleteReceipt, coaches, requisitions, onAddRequisition, onUpdateRequisition, onDeleteRequisition, lang }) => {
   const t = translations[lang];
   const today = new Date().toISOString().split('T')[0];
+  const [activeTab, setActiveTab] = useState<'stock' | 'requisition'>('stock');
 
   // Dual-section form state
   const [receivedForm, setReceivedForm] = useState({ date: today, itemName: '', partNo: '', category: '', qty: '', unit: 'pcs', remarks: '' });
@@ -214,11 +220,42 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black tracking-tight">Inventory Stock Register</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Daily received · issued · per-item &amp; per-vehicle ledger</p>
+          <h2 className="text-2xl font-black tracking-tight">Inventory</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Stock ledger &amp; parts requisition slips</p>
         </div>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-fit">
+        {[
+          { key: 'stock' as const, label: 'Stock Ledger', icon: 'fa-box' },
+          { key: 'requisition' as const, label: 'Parts Requisition Slip', icon: 'fa-file-invoice' },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+              activeTab === tab.key
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <i className={`fa-solid ${tab.icon}`}></i>{tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'requisition' ? (
+        <PartsRequisitionSlip
+          requisitions={requisitions}
+          onAdd={onAddRequisition}
+          onUpdate={onUpdateRequisition}
+          onDelete={onDeleteRequisition}
+          coaches={coaches}
+          lang={lang}
+        />
+      ) : (
+      <>
       {/* Dual-Section Forms */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* RECEIVED SECTION */}
@@ -604,6 +641,8 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
             </form>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

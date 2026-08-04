@@ -30,7 +30,7 @@ function handleVoucherCreate($db, $data) {
   }
 
   try {
-    $id = Utils::generateId('VCH');
+    $id = $data['id'] ?? Utils::generateId('VCH');
     $name = trim($data['name']);
     $images = is_array($data['images'] ?? null) ? array_values($data['images']) : [];
     if (empty($images) && !empty($data['image'])) $images = [$data['image']];

@@ -99,6 +99,28 @@ export interface InventoryReceipt {
   remarks?: string;
 }
 
+export interface PartsRequisitionItem {
+  partsName: string;
+  partsNo?: string;
+  quantity: string;
+  remarks?: string;
+}
+
+export interface PartsRequisition {
+  id: string;
+  voucherNo: string;
+  date: string;
+  ref?: string;
+  busNo?: string;
+  receivedName?: string;
+  items: PartsRequisitionItem[];
+  total?: string;
+  approvedBy?: string;
+  foreman?: string;
+  receivedBySign?: string;
+  createdAt: string;
+}
+
 export interface Transaction {
   id: string;
   date: string;

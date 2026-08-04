@@ -30,6 +30,7 @@ class Schema {
     $this->createInventory();
     $this->createInventoryIssues();
     $this->createInventoryReceipts();
+    $this->createPartsRequisitions();
     $this->createVouchers();
     $this->createBkashRecords();
     $this->createBusBdRecords();
@@ -335,6 +336,27 @@ class Schema {
       INDEX idx_item (itemId)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
+    $this->db->exec($sql);
+  }
+
+  private function createPartsRequisitions() {
+    $sql = "CREATE TABLE IF NOT EXISTS {$this->prefix}parts_requisitions (
+      id VARCHAR(50) PRIMARY KEY,
+      voucherNo VARCHAR(50) NOT NULL,
+      date DATE NOT NULL,
+      ref VARCHAR(150),
+      busNo VARCHAR(100),
+      receivedName VARCHAR(150),
+      items LONGTEXT,
+      total VARCHAR(50),
+      approvedBy VARCHAR(150),
+      foreman VARCHAR(150),
+      receivedBySign VARCHAR(150),
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_voucherNo (voucherNo),
+      INDEX idx_date (date),
+      INDEX idx_busNo (busNo)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     $this->db->exec($sql);
   }
 

@@ -18,7 +18,7 @@ import Vouchers from './components/Vouchers';
 import Bkash from './components/Bkash';
 import BusBd from './components/BusBd';
 import { PERMISSIONS } from './constants';
-import { Trip, Transaction, InventoryItem, InventoryIssue, InventoryReceipt, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
+import { Trip, Transaction, InventoryItem, InventoryIssue, InventoryReceipt, PartsRequisition, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
 import { Language, translations } from './translations';
 
 
@@ -63,6 +63,7 @@ const App: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [inventoryIssues, setInventoryIssues] = useState<InventoryIssue[]>([]);
   const [inventoryReceipts, setInventoryReceipts] = useState<InventoryReceipt[]>([]);
+  const [partsRequisitions, setPartsRequisitions] = useState<PartsRequisition[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [ticketSales, setTicketSales] = useState<TicketSalesRecord[]>([]);
   const [counters, setCounters] = useState<Counter[]>([]);
@@ -120,7 +121,7 @@ const App: React.FC = () => {
         }
 
         // Fetch all modules in parallel — API enforces per-endpoint RBAC (403 → null → state unchanged)
-        const [notif, coachesRes, tripsRes, countersRes, usersRes, staffRes, finRes, salesRes, invRes, invIssuesRes, invReceiptsRes, vouchersRes, bkashRes, busBdRes] = await Promise.all([
+        const [notif, coachesRes, tripsRes, countersRes, usersRes, staffRes, finRes, salesRes, invRes, invIssuesRes, invReceiptsRes, partsReqRes, vouchersRes, bkashRes, busBdRes] = await Promise.all([
           load('/api/notifications'),
           load('/api/coaches'),
           load('/api/trips'),
@@ -132,6 +133,7 @@ const App: React.FC = () => {
           load(`/api/inventory?role=${role}`),
           load('/api/inventory-issues'),
           load('/api/inventory-receipts'),
+          load('/api/parts-requisitions'),
           load('/api/vouchers'),
           load('/api/bkash'),
           load('/api/busbd'),
@@ -170,6 +172,9 @@ const App: React.FC = () => {
 
         if (invReceiptsRes?.success && Array.isArray(invReceiptsRes.data)) setInventoryReceipts(invReceiptsRes.data);
         else if (Array.isArray(invReceiptsRes)) setInventoryReceipts(invReceiptsRes);
+
+        if (partsReqRes?.success && Array.isArray(partsReqRes.data)) setPartsRequisitions(partsReqRes.data);
+        else if (Array.isArray(partsReqRes)) setPartsRequisitions(partsReqRes);
 
         if (vouchersRes?.success && Array.isArray(vouchersRes.data)) setVouchers(vouchersRes.data);
         else if (Array.isArray(vouchersRes)) setVouchers(vouchersRes);
@@ -443,6 +448,23 @@ const App: React.FC = () => {
   const deleteInventoryReceipt = async (id: string) => {
     setInventoryReceipts(prev => prev.filter(i => i.id !== id));
     await apiMutate('DELETE', `/api/inventory-receipts/${id}`);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Parts Requisition Slip Handlers
+  const addPartsRequisition = async (req: PartsRequisition) => {
+    setPartsRequisitions(prev => [req, ...prev]);
+    await apiMutate('POST', '/api/parts-requisitions', req);
+    setRefreshKey(prev => prev + 1);
+  };
+  const updatePartsRequisition = async (id: string, req: PartsRequisition) => {
+    setPartsRequisitions(prev => prev.map(r => r.id === id ? req : r));
+    await apiMutate('PUT', `/api/parts-requisitions/${id}`, req);
+    setRefreshKey(prev => prev + 1);
+  };
+  const deletePartsRequisition = async (id: string) => {
+    setPartsRequisitions(prev => prev.filter(r => r.id !== id));
+    await apiMutate('DELETE', `/api/parts-requisitions/${id}`);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -775,7 +797,7 @@ const App: React.FC = () => {
           canWrite={hasPermission('counters')}
         />
       );
-      case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} issues={inventoryIssues} onAddIssue={addInventoryIssue} onDeleteIssue={deleteInventoryIssue} receipts={inventoryReceipts} onAddReceipt={addInventoryReceipt} onDeleteReceipt={deleteInventoryReceipt} coaches={coaches} lang={language} />;
+      case 'inventory': return <Inventory inventory={inventory} onAdd={addInventory} onUpdate={updateInventory} onDelete={deleteInventory} issues={inventoryIssues} onAddIssue={addInventoryIssue} onDeleteIssue={deleteInventoryIssue} receipts={inventoryReceipts} onAddReceipt={addInventoryReceipt} onDeleteReceipt={deleteInventoryReceipt} coaches={coaches} requisitions={partsRequisitions} onAddRequisition={addPartsRequisition} onUpdateRequisition={updatePartsRequisition} onDeleteRequisition={deletePartsRequisition} lang={language} />;
       case 'finance': return <Finance transactions={transactions} onAdd={addTransaction} onUpdate={updateTransaction} onDelete={deleteTransaction} lang={language} userRole={currentUser?.role} userId={currentUser?.id} counters={counters} />;
       case 'hr': return <HR staff={staff} onAdd={addStaff} onUpdate={updateStaff} onDelete={deleteStaff} lang={language} userRole={currentUser?.role} userId={currentUser?.id} />;
       case 'maintenance': return <Maintenance trips={trips} inventory={inventory} coaches={coaches} onUseInventory={adjustInventoryStock} lang={language} />;

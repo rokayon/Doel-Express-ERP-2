@@ -21,7 +21,7 @@ function handleInventoryList($db, $data) {
 
 function handleInventoryCreate($db, $data) {
   try {
-    $id = Utils::generateId('INV');
+    $id = $data['id'] ?? Utils::generateId('INV');
     $stmt = $db->prepare(
       "INSERT INTO doel_inventory (id, name, partNo, category, stock, minStock, unit, lastUpdated, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())"
