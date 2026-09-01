@@ -24,6 +24,12 @@ $subaction = $segments[2] ?? null;
 
 $data = Utils::getRequestData();
 
+// Route metadata for the auto activity-log hook in Response::success()
+$GLOBALS['__ROUTE_META'] = [
+  'module' => $action,
+  'recordId' => $id,
+];
+
 try {
   // Route dispatcher
   switch ($action) {
@@ -269,7 +275,12 @@ try {
 
     // ========== VOUCHERS ==========
     case 'vouchers':
-      Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'MANAGING_DIRECTOR', 'DIRECTOR', 'MANAGER', 'IT', 'ACCOUNTS', 'HR'], 'vouchers');
+      // GET is read-only, allow all authenticated users; POST/PUT/DELETE restricted
+      if ($method !== 'GET') {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'MANAGING_DIRECTOR', 'DIRECTOR', 'MANAGER', 'IT', 'ACCOUNTS', 'HR'], 'vouchers');
+      } else {
+        Auth::authorize(['SUPER_ADMIN', 'ADMIN', 'MANAGING_DIRECTOR', 'DIRECTOR', 'MANAGER', 'IT', 'ACCOUNTS', 'HR', 'SALES', 'COUNTER', 'SUPERVISOR'], 'vouchers');
+      }
       require_once __DIR__ . '/routes/vouchers.php';
       if ($method === 'GET') {
         handleVoucherList($db_instance->getConnection());
@@ -313,6 +324,24 @@ try {
         handleBusBdUpdate($db_instance->getConnection(), $id, $data);
       } elseif ($method === 'DELETE' && $id) {
         handleBusBdDelete($db_instance->getConnection(), $id);
+      } else {
+        Response::error('Method not allowed', 405);
+      }
+      break;
+
+    // ========== ACTIVITY LOGS ==========
+    case 'activity-logs':
+      require_once __DIR__ . '/routes/activity_logs.php';
+      if ($method === 'GET') {
+        if ($id === 'config') {
+          handleActivityLogList($db_instance->getConnection(), $data);
+        } elseif ($id) {
+          handleActivityLogByUser($db_instance->getConnection(), $id);
+        } else {
+          handleActivityLogList($db_instance->getConnection(), $data);
+        }
+      } elseif ($method === 'PUT' && $id === 'config') {
+        handleActivityLogConfigUpdate($db_instance->getConnection(), $data);
       } else {
         Response::error('Method not allowed', 405);
       }
@@ -377,7 +406,7 @@ try {
     default:
       Response::error('Endpoint not found', 404);
   }
-} catch (Exception $e) {
+} catch (Throwable $e) {
   error_log($e->getMessage());
   Response::error('Server error: ' . $e->getMessage(), 500);
 }

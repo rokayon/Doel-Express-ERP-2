@@ -10,6 +10,7 @@ interface VouchersProps {
   onDelete: (id: string) => void;
   lang: Language;
   canWrite?: boolean;
+  loading?: boolean;
 }
 
 const MAX_PDF_BYTES = 5 * 1024 * 1024; // 5MB — PDFs can't be compressed client-side, so cap size instead
@@ -58,7 +59,7 @@ const getImages = (v: Voucher): string[] => {
   return [];
 };
 
-const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete, lang, canWrite = true }) => {
+const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete, lang, canWrite = true, loading = false }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [voucherName, setVoucherName] = useState('');
@@ -68,12 +69,16 @@ const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number; name: string } | null>(null);
+  const [showExpired, setShowExpired] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const activeVouchers = useMemo(
-    () => vouchers.filter(v => new Date(v.expiresAt) > new Date()),
-    [vouchers]
-  );
+  const displayVouchers = useMemo(() => {
+    if (showExpired) return vouchers;
+    return vouchers.filter(v => {
+      const expiryDate = new Date(v.expiresAt);
+      return expiryDate > new Date();
+    });
+  }, [vouchers, showExpired]);
 
   const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -195,19 +200,31 @@ const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {lang === 'en'
-              ? `${activeVouchers.length} active · Auto-delete after 40 days`
-              : `${activeVouchers.length}টি সক্রিয় · ৪০ দিন পরে স্বয়ংক্রিয়ভাবে মুছে যাবে`}
+              ? `${displayVouchers.length} ${showExpired ? 'total' : 'active'} · Auto-delete after 40 days`
+              : `${displayVouchers.length} ${showExpired ? 'মোট' : 'সক্রিয়'} · ৪০ দিন পরে স্বয়ংক্রিয়ভাবে মুছে যাবে`}
           </p>
         </div>
-        {canWrite && (
+        <div className="flex gap-3">
           <button
-            onClick={openAddModal}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
+            onClick={() => setShowExpired(!showExpired)}
+            className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+              showExpired
+                ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+            }`}
           >
-            <i className="fa-solid fa-plus"></i>
-            {lang === 'en' ? 'Add Voucher' : 'ভাউচার যোগ করুন'}
+            {lang === 'en' ? 'Show Expired' : 'মেয়াদোত্তীর্ণ দেখান'}
           </button>
-        )}
+          {canWrite && (
+            <button
+              onClick={openAddModal}
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
+            >
+              <i className="fa-solid fa-plus"></i>
+              {lang === 'en' ? 'Add' : 'যোগ করুন'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Auto-delete notice */}
@@ -221,14 +238,26 @@ const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete
       </div>
 
       {/* Voucher Grid */}
-      {activeVouchers.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden animate-pulse">
+              <div className="w-full aspect-[3/2] bg-slate-100 dark:bg-slate-800"></div>
+              <div className="p-5 space-y-3">
+                <div className="h-3.5 w-2/3 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                <div className="h-2.5 w-1/3 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : displayVouchers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
           <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-slate-300 dark:text-slate-600 text-4xl">
             <i className="fa-solid fa-receipt"></i>
           </div>
           <div>
             <p className="font-black text-slate-400 text-lg">
-              {lang === 'en' ? 'No vouchers yet' : 'এখনো কোনো ভাউচার নেই'}
+              {lang === 'en' ? (showExpired ? 'No expired vouchers' : 'No active vouchers') : (showExpired ? 'কোনো মেয়াদোত্তীর্ণ ভাউচার নেই' : 'কোনো সক্রিয় ভাউচার নেই')}
             </p>
             <p className="text-sm text-slate-400 mt-1">
               {lang === 'en' ? 'Add a voucher to get started.' : 'শুরু করতে একটি ভাউচার যোগ করুন।'}
@@ -237,7 +266,7 @@ const Vouchers: React.FC<VouchersProps> = ({ vouchers, onAdd, onUpdate, onDelete
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {activeVouchers.map(voucher => {
+          {displayVouchers.map(voucher => {
             const remaining = daysLeft(voucher.expiresAt);
             const isExpiringSoon = remaining <= 7;
             const images = getImages(voucher);

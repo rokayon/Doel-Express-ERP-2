@@ -17,6 +17,7 @@ import CounterManagement from './components/CounterManagement';
 import Vouchers from './components/Vouchers';
 import Bkash from './components/Bkash';
 import BusBd from './components/BusBd';
+import ActivityLogs from './components/ActivityLogs';
 import { PERMISSIONS } from './constants';
 import { Trip, Transaction, InventoryItem, InventoryIssue, InventoryReceipt, PartsRequisition, Staff, User, AppRole, TicketSalesRecord, Counter, Coach, Voucher, BkashRecord, BusBdRecord } from './types';
 import { Language, translations } from './translations';
@@ -33,7 +34,7 @@ const App: React.FC = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!savedUser);
   const [currentUser, setCurrentUser] = useState<User | null>(savedUser ? JSON.parse(savedUser) : null);
-  const VALID_TABS = ['dashboard','fleetManagement','ticketSalesRecord','counters','inventory','finance','hr','maintenance','reports','settings','userManagement','vouchers','bkash','busbd'];
+  const VALID_TABS = ['dashboard','fleetManagement','ticketSalesRecord','counters','inventory','finance','hr','maintenance','reports','settings','userManagement','vouchers','bkash','busbd','activityLogs'];
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('doel_tab') || 'dashboard';
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
@@ -43,6 +44,7 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(savedLang || 'en');
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   // Chaining State
@@ -98,6 +100,7 @@ const App: React.FC = () => {
   // Fetch ALL data from API on login / refresh
   useEffect(() => {
     const fetchData = async () => {
+      setIsDataLoading(true);
       try {
         const role = currentUser?.role || '';
         const h = { 'x-user-role': role, 'x-user-id': currentUser?.id || '' };
@@ -187,6 +190,8 @@ const App: React.FC = () => {
 
       } catch (error) {
         console.error('Failed to fetch data:', error);
+      } finally {
+        setIsDataLoading(false);
       }
     };
     if (isAuthenticated) fetchData();
@@ -811,6 +816,7 @@ const App: React.FC = () => {
           onDelete={deleteVoucher}
           lang={language}
           canWrite={hasPermission('vouchers')}
+          loading={isDataLoading}
         />
       );
       case 'bkash': return (
@@ -833,6 +839,12 @@ const App: React.FC = () => {
           lang={language}
           userRole={currentUser?.role}
           canWrite={hasPermission('busbd')}
+        />
+      );
+      case 'activityLogs': return (
+        <ActivityLogs
+          lang={language}
+          userRole={currentUser?.role}
         />
       );
       case 'settings': return (

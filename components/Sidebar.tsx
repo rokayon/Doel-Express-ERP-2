@@ -102,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ))}
 
             {(userRole === AppRole.SUPER_ADMIN || userRole === AppRole.ADMIN || userRole === AppRole.IT) && (
-              <div className={`pt-6 mt-6 border-t border-white/5 ${!isExpanded ? 'flex justify-center px-0' : ''}`}>
+              <div className={`pt-6 mt-6 border-t border-white/5 space-y-1 ${!isExpanded ? 'flex flex-col justify-center px-0' : ''}`}>
                 <button
                   onClick={() => { setActiveTab('userManagement'); setIsOpen(false); }}
                   className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all ${
@@ -112,6 +112,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <span className="text-lg w-6 flex justify-center opacity-40"><i className="fa-solid fa-shield-halved"></i></span>
                   {isExpanded && <span className="text-[13px] font-bold text-left animate-in slide-in-from-left-2">{t.userManagement}</span>}
                 </button>
+                {(userRole === AppRole.SUPER_ADMIN || userRole === AppRole.ADMIN) && (
+                  <button
+                    onClick={() => { setActiveTab('activityLogs'); setIsOpen(false); }}
+                    className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all ${
+                      activeTab === 'activityLogs' ? 'bg-purple-600 text-white' : 'text-white/60 hover:bg-white/5'
+                    } ${!isExpanded ? 'justify-center px-0' : ''}`}
+                  >
+                    <span className="text-lg w-6 flex justify-center opacity-40"><i className="fa-solid fa-scroll"></i></span>
+                    {isExpanded && <span className="text-[13px] font-bold text-left animate-in slide-in-from-left-2">Activity Logs</span>}
+                  </button>
+                )}
               </div>
             )}
           </nav>

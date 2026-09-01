@@ -282,7 +282,7 @@ const PartsRequisitionSlip: React.FC<PartsRequisitionProps> = ({ requisitions, o
                   <input type="text" value={form.receivedBySign} onChange={e => setForm({ ...form, receivedBySign: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Foreman</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Store Incharge</label>
                   <input type="text" value={form.foreman} onChange={e => setForm({ ...form, foreman: e.target.value })} className={inputCls} />
                 </div>
                 <div>
@@ -363,7 +363,7 @@ const PartsRequisitionSlip: React.FC<PartsRequisitionProps> = ({ requisitions, o
                 </div>
                 <div className="border-t border-slate-300 dark:border-slate-700 pt-2">
                   <p className="text-xs font-bold">{previewReq.foreman || '—'}</p>
-                  <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Foreman</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-1">Store Incharge</p>
                 </div>
                 <div className="border-t border-slate-300 dark:border-slate-700 pt-2">
                   <p className="text-xs font-bold">{previewReq.approvedBy || '—'}</p>

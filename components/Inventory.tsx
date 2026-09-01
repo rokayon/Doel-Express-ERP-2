@@ -45,7 +45,7 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
   const [activeTab, setActiveTab] = useState<'stock' | 'requisition'>('stock');
 
   // Dual-section form state
-  const [receivedForm, setReceivedForm] = useState({ date: today, itemName: '', partNo: '', category: '', qty: '', unit: 'pcs', remarks: '' });
+  const [receivedForm, setReceivedForm] = useState({ date: today, companyName: '', contactInfo: '', itemName: '', partNo: '', category: '', qty: '', unit: 'pcs', remarks: '' });
   const [issuedForm, setIssuedForm] = useState({ date: today, itemName: '', busNo: '', side: '', receiver: '', qty: '', unit: 'pcs', remarks: '' });
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
@@ -101,10 +101,12 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
       category: itemData.category,
       qty,
       unit: receivedForm.unit,
+      companyName: receivedForm.companyName.trim() || undefined,
+      contactInfo: receivedForm.contactInfo.trim() || undefined,
       remarks: receivedForm.remarks.trim() || undefined,
     });
 
-    setReceivedForm({ date: today, itemName: '', partNo: '', category: '', qty: '', unit: 'pcs', remarks: '' });
+    setReceivedForm({ date: today, companyName: '', contactInfo: '', itemName: '', partNo: '', category: '', qty: '', unit: 'pcs', remarks: '' });
     setIsAddingNewCategory(false);
     setNewCategoryInput('');
     setIsAddingNewItem(false);
@@ -269,6 +271,10 @@ const Inventory: React.FC<InventoryProps> = ({ inventory, onAdd, onUpdate, onDel
 
           <div className="grid grid-cols-2 gap-3">
             <input type="date" value={receivedForm.date} onChange={e => setReceivedForm({ ...receivedForm, date: e.target.value })} className={`col-span-2 ${selectCls} focus:ring-emerald-400/30`} />
+
+            <input type="text" value={receivedForm.companyName} onChange={e => setReceivedForm({ ...receivedForm, companyName: e.target.value })} placeholder="Company Name (optional)" className={`${selectCls} focus:ring-emerald-400/30`} />
+
+            <input type="text" value={receivedForm.contactInfo} onChange={e => setReceivedForm({ ...receivedForm, contactInfo: e.target.value })} placeholder="Contact Info (optional)" className={`${selectCls} focus:ring-emerald-400/30`} />
 
             {isAddingNewItem ? (
               <div className="col-span-2 flex gap-1">

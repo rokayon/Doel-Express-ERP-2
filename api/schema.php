@@ -34,6 +34,7 @@ class Schema {
     $this->createVouchers();
     $this->createBkashRecords();
     $this->createBusBdRecords();
+    $this->createActivityLog();
     $this->seedInitialData();
   }
 
@@ -330,6 +331,8 @@ class Schema {
       category VARCHAR(100),
       qty INT DEFAULT 0,
       unit VARCHAR(50),
+      companyName VARCHAR(150),
+      contactInfo VARCHAR(150),
       remarks VARCHAR(255),
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_date (date),
@@ -337,6 +340,14 @@ class Schema {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
     $this->db->exec($sql);
+
+    // Add companyName and contactInfo columns if the table already existed without them
+    foreach ([
+      "ALTER TABLE {$this->prefix}inventory_receipts ADD COLUMN companyName VARCHAR(150) AFTER unit",
+      "ALTER TABLE {$this->prefix}inventory_receipts ADD COLUMN contactInfo VARCHAR(150) AFTER companyName",
+    ] as $alterSql) {
+      try { $this->db->exec($alterSql); } catch (Exception $e) { /* column already exists */ }
+    }
   }
 
   private function createPartsRequisitions() {
@@ -427,6 +438,56 @@ class Schema {
     ] as $alterSql) {
       try { $this->db->exec($alterSql); } catch (Exception $e) { /* column already exists */ }
     }
+  }
+
+  private function createActivityLog() {
+    $sql = "CREATE TABLE IF NOT EXISTS {$this->prefix}activity_logs (
+      id VARCHAR(50) PRIMARY KEY,
+      userId VARCHAR(50) NOT NULL,
+      username VARCHAR(100),
+      userRole VARCHAR(50),
+      action VARCHAR(50) NOT NULL,
+      module VARCHAR(100),
+      recordId VARCHAR(50),
+      recordType VARCHAR(100),
+      oldValue LONGTEXT,
+      newValue LONGTEXT,
+      details TEXT,
+      ipAddress VARCHAR(45),
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_user (userId),
+      INDEX idx_timestamp (timestamp),
+      INDEX idx_action (action),
+      FOREIGN KEY (userId) REFERENCES {$this->prefix}users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    $this->db->exec($sql);
+
+    $configSql = "CREATE TABLE IF NOT EXISTS {$this->prefix}activity_log_config (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      retentionDays INT DEFAULT 30,
+      enableAutoDelete BOOLEAN DEFAULT TRUE,
+      allowedRoles TEXT,
+      lastCleanupAt DATETIME,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+    $this->db->exec($configSql);
+
+    // Add allowedRoles column if it doesn't exist (migration for existing installations)
+    try {
+      $this->db->exec("ALTER TABLE {$this->prefix}activity_log_config ADD COLUMN allowedRoles TEXT");
+    } catch (Exception $e) { /* column already exists */ }
+
+    // Initialize default config if not exists
+    try {
+      $checkStmt = $this->db->prepare("SELECT COUNT(*) as cnt FROM {$this->prefix}activity_log_config");
+      $checkStmt->execute();
+      $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
+      if ($result['cnt'] == 0) {
+        $defaultRoles = json_encode(['SUPER_ADMIN', 'ADMIN']);
+        $initStmt = $this->db->prepare("INSERT INTO {$this->prefix}activity_log_config (id, retentionDays, enableAutoDelete, allowedRoles) VALUES (1, 30, TRUE, ?)");
+        $initStmt->execute([$defaultRoles]);
+      }
+    } catch (Exception $e) { /* ignore */ }
   }
 
   private function seedInitialData() {

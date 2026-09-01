@@ -145,8 +145,8 @@ function handleInventoryReceiptCreate($db, $data) {
   try {
     $id = Utils::generateId('REC');
     $stmt = $db->prepare(
-      "INSERT INTO doel_inventory_receipts (id, date, itemId, itemName, partNo, category, qty, unit, remarks, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+      "INSERT INTO doel_inventory_receipts (id, date, itemId, itemName, partNo, category, qty, unit, companyName, contactInfo, remarks, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
     );
     $stmt->execute([
       $id,
@@ -157,6 +157,8 @@ function handleInventoryReceiptCreate($db, $data) {
       $data['category'] ?? null,
       $data['qty'] ?? 0,
       $data['unit'] ?? 'pcs',
+      $data['companyName'] ?? null,
+      $data['contactInfo'] ?? null,
       $data['remarks'] ?? null,
     ]);
     Response::success(['id' => $id], 'Inventory receipt logged', 201);

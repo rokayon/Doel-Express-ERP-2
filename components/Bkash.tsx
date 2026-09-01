@@ -45,7 +45,10 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     merchant: 'Dhaka' as 'Dhaka' | 'Cox',
     openingBalance: 0,
     dailyReceived: 0,
-    merchantToBank: '',
+    merchantToBank: 0,
+    bkashCharge: 0,
+    netBankReceipt: 0,
+    closingBalance: 0,
     notes: '',
   });
 
@@ -105,14 +108,6 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     };
   }, [openingBalanceInput, dhakaDR, coxDR, dailyM2B, addDate, records]);
 
-  // ── Edit mode calcs ────────────────────────────────────
-  const editCalc = useMemo(() => {
-    const m2b     = parseFloat(editData.merchantToBank) || 0;
-    const charge  = parseFloat((m2b * RATE).toFixed(2));
-    const net     = parseFloat((m2b - charge).toFixed(2));
-    const closing = parseFloat((editData.openingBalance + editData.dailyReceived - net).toFixed(2));
-    return { m2b, charge, net, closing };
-  }, [editData.merchantToBank, editData.openingBalance, editData.dailyReceived]);
 
   // ── Filtered + sorted records ─────────────────────────
   const filtered = useMemo(() =>
@@ -173,7 +168,7 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
     setOpeningBalanceOverride(null);
     setDhakaDR(''); setCoxDR(''); setDailyM2B('');
     setAddDate(today); setAddNotes('');
-    setEditData({ date: today, merchant: 'Dhaka', openingBalance: 0, dailyReceived: 0, merchantToBank: '', notes: '' });
+    setEditData({ date: today, merchant: 'Dhaka', openingBalance: 0, dailyReceived: 0, merchantToBank: 0, bkashCharge: 0, netBankReceipt: 0, closingBalance: 0, notes: '' });
     setEditingId(null);
   };
 
@@ -183,7 +178,10 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
       merchant: r.merchant,
       openingBalance: r.openingBalance,
       dailyReceived: r.dailyReceived,
-      merchantToBank: String(r.merchantToBank),
+      merchantToBank: r.merchantToBank,
+      bkashCharge: r.bkashCharge,
+      netBankReceipt: r.netBankReceipt,
+      closingBalance: r.closingBalance,
       notes: r.notes || '',
     });
     setEditingId(r.id);
@@ -198,10 +196,10 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
       merchant: editData.merchant,
       openingBalance: editData.openingBalance,
       dailyReceived: editData.dailyReceived,
-      merchantToBank: editCalc.m2b,
-      bkashCharge: editCalc.charge,
-      netBankReceipt: editCalc.net,
-      closingBalance: editCalc.closing,
+      merchantToBank: editData.merchantToBank,
+      bkashCharge: editData.bkashCharge,
+      netBankReceipt: editData.netBankReceipt,
+      closingBalance: editData.closingBalance,
       notes: editData.notes.trim() || undefined,
     });
     setShowModal(false);
@@ -511,40 +509,35 @@ const Bkash: React.FC<BkashProps> = ({ records, onAdd, onUpdate, onDelete, lang,
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Opening Balance</p>
-                    <p className="font-black tabular-nums text-slate-600 dark:text-slate-300">{fmt(editData.openingBalance)}</p>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Opening Balance</label>
+                    <input type="number" step="0.01" value={editData.openingBalance} onChange={e => setEditData({ ...editData, openingBalance: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
                   </div>
-                  <div className="rounded-xl p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Daily Received</p>
-                    <p className="font-black tabular-nums text-emerald-600">{fmt(editData.dailyReceived)}</p>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Daily Received</label>
+                    <input type="number" step="0.01" value={editData.dailyReceived} onChange={e => setEditData({ ...editData, dailyReceived: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
                   </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Merchant → Bank</label>
-                  <input type="number" min="0" step="0.01"
-                    value={editData.merchantToBank}
-                    onChange={e => setEditData({ ...editData, merchantToBank: e.target.value })}
-                    onWheel={e => e.currentTarget.blur()}
-                    className={inputCls} placeholder="0.00" />
-                </div>
-                {editCalc.m2b > 0 && (
-                  <div className="rounded-2xl p-4 space-y-2.5" style={{ backgroundColor: 'rgba(226,19,110,0.06)', border: '1px solid rgba(226,19,110,0.2)' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BKASH_PINK }}>
-                      <i className="fa-solid fa-calculator mr-1.5"></i>Auto-Calculated
-                    </p>
-                    {[
-                      { label: 'bKash Charge 1.15%', value: editCalc.charge, cls: 'text-rose-600 dark:text-rose-400' },
-                      { label: 'Net to Bank', value: editCalc.net, cls: 'text-violet-700 dark:text-violet-400' },
-                      { label: 'Closing Balance', value: editCalc.closing, cls: editCalc.closing >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' },
-                    ].map(row => (
-                      <div key={row.label} className="flex justify-between items-center text-sm">
-                        <span className="text-slate-500 text-xs font-bold">{row.label}</span>
-                        <span className={`font-black tabular-nums ${row.cls}`}>{fmt(row.value)}</span>
-                      </div>
-                    ))}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Merchant → Bank</label>
+                    <input type="number" min="0" step="0.01" value={editData.merchantToBank} onChange={e => setEditData({ ...editData, merchantToBank: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
                   </div>
-                )}
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">bKash Charge</label>
+                    <input type="number" min="0" step="0.01" value={editData.bkashCharge} onChange={e => setEditData({ ...editData, bkashCharge: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Net to Bank</label>
+                    <input type="number" step="0.01" value={editData.netBankReceipt} onChange={e => setEditData({ ...editData, netBankReceipt: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Closing Balance</label>
+                    <input type="number" step="0.01" value={editData.closingBalance} onChange={e => setEditData({ ...editData, closingBalance: parseFloat(e.target.value) || 0 })} onWheel={e => e.currentTarget.blur()} className={inputCls} />
+                  </div>
+                </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Notes</label>
                   <input type="text" value={editData.notes} onChange={e => setEditData({ ...editData, notes: e.target.value })} className={inputCls} placeholder="Optional notes..." />

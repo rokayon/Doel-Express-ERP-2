@@ -7,10 +7,15 @@
 
 function handleVoucherList($db) {
   try {
+    // Listing loads every voucher's full base64 images/PDFs at once — bump the
+    // ceiling so a growing table doesn't silently OOM-crash the whole request
+    // (a memory-exhausted fatal isn't catchable, so it must be prevented, not caught).
+    @ini_set('memory_limit', '512M');
+
     // Auto-delete expired vouchers (older than 40 days)
     $db->exec("DELETE FROM doel_vouchers WHERE expiresAt <= NOW()");
 
-    $stmt = $db->prepare("SELECT id, name, image, images, createdAt, expiresAt FROM doel_vouchers ORDER BY createdAt DESC");
+    $stmt = $db->prepare("SELECT id, name, image, images, createdAt, expiresAt FROM doel_vouchers ORDER BY createdAt DESC LIMIT 100");
     $stmt->execute();
     $raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $vouchers = array_map(function($v) {
@@ -19,7 +24,7 @@ function handleVoucherList($db) {
       return $v;
     }, $raw);
     Response::success($vouchers, 'Vouchers fetched');
-  } catch (Exception $e) {
+  } catch (Throwable $e) {
     Response::error('Failed to fetch vouchers: ' . $e->getMessage(), 500);
   }
 }
@@ -51,7 +56,7 @@ function handleVoucherCreate($db, $data) {
       'createdAt' => $createdAt,
       'expiresAt' => $expiresAt,
     ], 'Voucher created', 201);
-  } catch (Exception $e) {
+  } catch (Throwable $e) {
     Response::error('Failed to create voucher: ' . $e->getMessage(), 500);
   }
 }
@@ -79,7 +84,7 @@ function handleVoucherUpdate($db, $id, $data) {
     $stmt = $db->prepare("UPDATE doel_vouchers SET " . implode(', ', $fields) . " WHERE id = ?");
     $stmt->execute($values);
     Response::success(['id' => $id], 'Voucher updated');
-  } catch (Exception $e) {
+  } catch (Throwable $e) {
     Response::error('Failed to update voucher: ' . $e->getMessage(), 500);
   }
 }
@@ -89,7 +94,7 @@ function handleVoucherDelete($db, $id) {
     $stmt = $db->prepare("DELETE FROM doel_vouchers WHERE id = ?");
     $stmt->execute([$id]);
     Response::success(['id' => $id], 'Voucher deleted');
-  } catch (Exception $e) {
+  } catch (Throwable $e) {
     Response::error('Failed to delete voucher: ' . $e->getMessage(), 500);
   }
 }

@@ -266,7 +266,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
       tripCost:         acc.tripCost         + (Number(r.tripCost)         || 0),
       totalCost:        acc.totalCost        + (Number(r.totalCost)        || 0),
       netProfit:        acc.netProfit        + (Number(r.netProfit)        || 0),
-      abdullahpurOffice:acc.abdullahpurOffice+ (Number(r.abdullahpurOffice) || 0),
+      abdullahpurOffice: acc.abdullahpurOffice + ((Number(r.dieselCost) || 0) + (Number(r.netProfit) || 0) - ((Number(r.coxsbazarOffice) || 0) + (Number(r.sonargaonOffice) || 0))),
       coxsbazarOffice:  acc.coxsbazarOffice  + (Number(r.coxsbazarOffice)  || 0),
       sonargaonOffice:  acc.sonargaonOffice  + (Number(r.sonargaonOffice)  || 0),
     }), {
@@ -742,8 +742,13 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 text-xs">Abdullahpur Office</label>
-                  <input type="number" value={formData.abdullahpurOffice || ''} onChange={e => setFormData({...formData, abdullahpurOffice: Number(e.target.value)})} placeholder="0" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-black text-purple-600 outline-none focus:ring-2 focus:ring-purple-500 transition-all hover:border-purple-400 dark:hover:border-purple-500" />
+                  <div className="flex items-center gap-2 ml-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-xs">Abdullahpur Office</label>
+                    <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 px-1.5 py-0.5 rounded-md uppercase tracking-widest">Auto</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl font-black text-purple-600 cursor-not-allowed opacity-75">
+                    ৳{((formData.dieselCost || 0) + (formData.netProfit || 0) - ((formData.coxsbazarOffice || 0) + (formData.sonargaonOffice || 0))).toLocaleString()}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 text-xs">Coxsbazar Office</label>
@@ -887,7 +892,7 @@ const TicketSalesRecordComponent: React.FC<TicketSalesRecordProps> = ({
                     <td className={`px-6 py-5 font-black text-sm italic bg-emerald-50/20 dark:bg-emerald-900/5 ${Number(record.netProfit) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                       ৳{Number(record.netProfit).toLocaleString()}
                     </td>
-                    <td className="px-6 py-5 font-bold text-slate-600 bg-purple-50/10 dark:bg-purple-900/5">৳{Number(record.abdullahpurOffice || 0).toLocaleString()}</td>
+                    <td className="px-6 py-5 font-bold text-slate-600 bg-purple-50/10 dark:bg-purple-900/5">৳{((Number(record.dieselCost) || 0) + (Number(record.netProfit) || 0) - ((Number(record.coxsbazarOffice) || 0) + (Number(record.sonargaonOffice) || 0))).toLocaleString()}</td>
                     <td className="px-6 py-5 font-bold text-slate-600 bg-purple-50/10 dark:bg-purple-900/5">৳{Number(record.coxsbazarOffice || 0).toLocaleString()}</td>
                     <td className="px-6 py-5 font-bold text-slate-600 bg-purple-50/10 dark:bg-purple-900/5">৳{Number(record.sonargaonOffice || 0).toLocaleString()}</td>
                   </tr>

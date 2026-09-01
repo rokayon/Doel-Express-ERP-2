@@ -96,6 +96,8 @@ export interface InventoryReceipt {
   category?: string;
   qty: number;
   unit: string;
+  companyName?: string;
+  contactInfo?: string;
   remarks?: string;
 }
 

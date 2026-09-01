@@ -12,6 +12,7 @@ class Response {
   }
 
   public static function success($data, $message = 'Success', $code = 200) {
+    self::logActivityIfMutation($data);
     self::json([
       'success' => true,
       'message' => $message,
@@ -25,12 +26,67 @@ class Response {
       'message' => $message
     ], $code);
   }
+
+  // Auto-logs every successful write (POST/PUT/DELETE) to doel_activity_logs.
+  // Central hook so individual route handlers don't need to log manually.
+  private static function logActivityIfMutation($data) {
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if (!in_array($method, ['POST', 'PUT', 'DELETE'])) return;
+
+    $meta = $GLOBALS['__ROUTE_META'] ?? null;
+    if (!$meta || in_array($meta['module'], ['auth', 'db-setup'])) return;
+
+    try {
+      $headers = function_exists('getallheaders') ? getallheaders() : [];
+      $userId = $headers['x-user-id'] ?? $headers['X-User-Id'] ?? $headers['X-USER-ID'] ?? null;
+      if (!$userId) return;
+
+      $db = Database::getInstance()->getConnection();
+
+      $userStmt = $db->prepare("SELECT username, role FROM doel_users WHERE id = ?");
+      $userStmt->execute([$userId]);
+      $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+      $actionType = $method === 'POST' ? 'CREATE' : ($method === 'PUT' ? 'UPDATE' : 'DELETE');
+      $recordId = $meta['recordId'] ?? (is_array($data) && isset($data['id']) ? $data['id'] : null);
+
+      $logId = 'LOG-' . time() . '-' . mt_rand(1000, 9999);
+      $stmt = $db->prepare(
+        "INSERT INTO doel_activity_logs
+         (id, userId, username, userRole, action, module, recordId, recordType, ipAddress, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+      );
+      $stmt->execute([
+        $logId,
+        $userId,
+        $user['username'] ?? null,
+        $user['role'] ?? null,
+        $actionType,
+        $meta['module'],
+        $recordId,
+        $meta['module'],
+        $_SERVER['REMOTE_ADDR'] ?? null,
+      ]);
+    } catch (Exception $e) {
+      error_log('Activity log auto-write failed: ' . $e->getMessage());
+    }
+  }
 }
 
 class Auth {
   public static function getToken() {
     $headers = getallheaders();
     return $headers['Authorization'] ?? $headers['authorization'] ?? $_GET['token'] ?? null;
+  }
+
+  public static function getUserRole() {
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    return $headers['x-user-role'] ?? $headers['X-User-Role'] ?? $headers['X-USER-ROLE'] ?? null;
+  }
+
+  public static function getUserId() {
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    return $headers['x-user-id'] ?? $headers['X-User-Id'] ?? $headers['X-USER-ID'] ?? null;
   }
 
   public static function authorize($requiredRoles = [], $module = null) {
