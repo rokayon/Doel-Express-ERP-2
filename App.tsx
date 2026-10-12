@@ -197,14 +197,6 @@ const App: React.FC = () => {
     if (isAuthenticated) fetchData();
   }, [isAuthenticated, refreshKey]);
 
-  // Re-fetch on tab focus so data stays fresh across user sessions
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const onFocus = () => setRefreshKey(prev => prev + 1);
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [isAuthenticated]);
-
   useEffect(() => {
     localStorage.setItem('doel_theme', isDarkMode ? 'dark' : 'light');
     if (isDarkMode) document.documentElement.classList.add('dark');
